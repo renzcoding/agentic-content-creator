@@ -4,10 +4,30 @@ import re
 from config.settings import MIN_SCRIPT_LENGTH
 
 
-def quality_check(script: str) -> dict:
+def quality_check(script: str, topic: str = "") -> dict:
     """Evaluate the structure and content of a generated script."""
     issues = []
     normalized = script.lower()
+
+    if topic:
+        topic_words = {
+            word.lower()
+            for word in re.findall(r"\b\w+\b", topic)
+            if len(word) > 3
+        }
+
+        ignored_topic_words = {
+            "cara", "untuk", "dalam", "dengan", "yang",
+            "agar", "bisa", "pada", "memanfaatkan",
+        }
+        topic_words -= ignored_topic_words
+
+        if topic_words and not any(
+            word in normalized for word in topic_words
+        ):
+            issues.append(
+                "The script may not be relevant to the requested topic."
+            )
 
     if len(script) < MIN_SCRIPT_LENGTH:
         issues.append("The script is too short.")
@@ -130,6 +150,26 @@ def quality_check(script: str) -> dict:
             for line in body_match.group(1).splitlines()
             if re.match(r"^\s*\d+\.\s+", line)
         ]
+
+
+        topic_words = {
+            word.lower()
+            for word in re.findall(r"\b\w+\b", topic)
+            if len(word) > 3
+        }
+        ignored_words = {
+            "cara", "untuk", "dalam", "dengan", "yang",
+            "agar", "bisa", "pada", "memanfaatkan",
+            "menghemat",
+        }
+        topic_words -= ignored_words
+
+        if topic_words:
+            for index, line in enumerate(body_lines, start=1):
+                if not any(word in line for word in topic_words):
+                    issues.append(
+                        f"Body point {index} may not be relevant to the topic."
+                    )
 
         normalized_lines = [
             re.sub(r"[^\w\s]", "", line)

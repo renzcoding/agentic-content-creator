@@ -27,7 +27,7 @@ def run_workflow(topic: str, niche: str = "tech") -> None:
     best_issue_count = float("inf")
 
     for attempt in range(1, MAX_REVISION_ATTEMPTS + 1):
-        result = quality_check(script)
+        result = quality_check(script, topic)
         issue_count = len(result["issues"])
 
         print(f"\nAttempt: {attempt}")
@@ -55,7 +55,7 @@ def run_workflow(topic: str, niche: str = "tech") -> None:
     print("\nBEST DRAFT:")
     print(best_script)
     print("\nREMAINING ISSUES:")
-    print(quality_check(best_script)["issues"])
+    print(quality_check(best_script, topic)["issues"])
 
 
 if __name__ == "__main__":

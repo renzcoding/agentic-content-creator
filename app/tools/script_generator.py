@@ -110,18 +110,20 @@ QUALITY ISSUES:
 {chr(10).join(issues)}
 
 Instructions:
-- Write in natural Indonesian.
+- Write in natural, concise Indonesian.
 - Keep the script under 100 words.
 - Preserve the original topic and intended audience.
-- Use three short, distinct practical points.
+- Make all three BODY points specific and practical.
+- Each BODY point must teach a different action or use case.
+- Do not repeat the same tool, task, benefit, or example across points.
+- Avoid generic claims without a concrete example.
+- Make every sentence directly relevant to the topic.
+- Do not invent statistics or unsupported factual claims.
 - Do not use markdown formatting.
-- Do not repeat ideas.
-- Complete every section.
-- Return only the script in exactly this format:
+- Return only the complete script in this format:
 - The CTA must be one complete question with at least 6 words.
-- Never end a section or sentence mid-phrase.
-- Before returning, verify that HOOK, BODY, and CTA are all complete.
-- If the draft is incomplete, rewrite it fully instead of editing only one section.
+- Ensure HOOK, BODY, and CTA are complete.
+- Rewrite the entire script, not just individual sections.
 
 HOOK: One short sentence.
 BODY:
