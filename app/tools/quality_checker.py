@@ -32,7 +32,7 @@ def quality_check(script: str, topic: str = "") -> dict:
     if len(script) < MIN_SCRIPT_LENGTH:
         issues.append("The script is too short.")
 
-    if len(script.split()) > 180:
+    if len(script.split()) > 100:
         issues.append("The script is too long for a short-form video.")
 
     if normalized.count("misalnya") >= 4:
@@ -157,20 +157,6 @@ def quality_check(script: str, topic: str = "") -> dict:
             for word in re.findall(r"\b\w+\b", topic)
             if len(word) > 3
         }
-        ignored_words = {
-            "cara", "untuk", "dalam", "dengan", "yang",
-            "agar", "bisa", "pada", "memanfaatkan",
-            "menghemat",
-        }
-        topic_words -= ignored_words
-
-        if topic_words:
-            for index, line in enumerate(body_lines, start=1):
-                if not any(word in line for word in topic_words):
-                    issues.append(
-                        f"Body point {index} may not be relevant to the topic."
-                    )
-
         normalized_lines = [
             re.sub(r"[^\w\s]", "", line)
             for line in body_lines
@@ -178,6 +164,38 @@ def quality_check(script: str, topic: str = "") -> dict:
 
         if len(normalized_lines) != len(set(normalized_lines)):
             issues.append("The body contains duplicated key points.")
+
+        stop_words = {
+            "yang", "dan", "di", "ke", "dari", "untuk",
+            "dengan", "ini", "itu", "atau", "dalam",
+            "anda", "adalah", "dapat", "bisa", "tidak",
+            "ai", "membantu", "melakukan", "memastikan",
+        }
+
+        point_keywords = [
+            {
+                word for word in re.findall(r"\b\w+\b", line)
+                if len(word) > 3 and word not in stop_words
+            }
+            for line in body_lines
+        ]
+
+        for first in range(len(point_keywords)):
+            for second in range(first + 1, len(point_keywords)):
+                common = point_keywords[first] & point_keywords[second]
+                smaller_size = min(
+                    len(point_keywords[first]),
+                    len(point_keywords[second]),
+                )
+
+                if (
+                    len(common) >= 3
+                    and smaller_size > 0
+                    and len(common) / smaller_size >= 0.7
+                ):
+                    issues.append(
+                        f"Body points {first + 1} and {second + 1} may repeat the same idea."
+                    )
 
         if len(body_lines) != 3:
             issues.append(

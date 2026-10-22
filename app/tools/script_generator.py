@@ -42,20 +42,21 @@ CONTENT BRIEF:
 {topic}
 
 Requirements:
-- Identify the exact topic, niche, audience, key points, hook direction, and CTA from the brief.
-- Stay strictly on topic. Never introduce unrelated subjects.
+- Identify the exact topic, niche, audience, and content goal from the brief.
+- Stay strictly on topic.
 - Write natural, conversational Indonesian.
-- Create one strong hook relevant to the topic.
-- Explain exactly three distinct key points from the brief.
-- Give a concrete example for each point when appropriate.
+- Create one short hook directly related to the topic.
+- Give exactly three practical points with different purposes.
+- Point 1: Explain one specific task AI can perform.
+- Point 2: Give a different real-world use case, not another version of point 1.
+- Point 3: Give one actionable tip viewers can try themselves.
+- Each point must describe a concrete action, not just claim that AI saves time.
+- Do not repeat the same task, benefit, or example across points.
 - Do not invent facts, statistics, quotes, or sources.
-- Avoid repetition and generic filler.
-- End with a relevant call to action.
-- Return only the finished script.
+- End with one relevant CTA question.
 - Keep the entire script between 60 and 100 words.
-- Keep each key point to one short sentence.
 - Do not use markdown formatting or quotation marks.
-- Prioritize completing all sections over adding explanations.
+- Return only the finished script in the required format.
 
 Format:
 HOOK: One relevant opening sentence.

@@ -1,3 +1,4 @@
+from app.tools.output_manager import save_content
 
 from app.tools.niche_planner import plan_content
 from app.tools.script_generator import generate_script, revise_script
@@ -37,6 +38,11 @@ def run_workflow(topic: str, niche: str = "tech") -> None:
             print("\nSTATUS: APPROVED")
             print("\nFINAL SCRIPT:")
             print(script)
+
+            output_path = save_content(
+                topic, niche, plan, script, "APPROVED", []
+            )
+            print(f"Saved output: {output_path}")
             return
 
         if issue_count < best_issue_count:
@@ -55,7 +61,14 @@ def run_workflow(topic: str, niche: str = "tech") -> None:
     print("\nBEST DRAFT:")
     print(best_script)
     print("\nREMAINING ISSUES:")
-    print(quality_check(best_script, topic)["issues"])
+    remaining_issues = quality_check(best_script, topic)["issues"]
+    print(remaining_issues)
+
+    output_path = save_content(
+        topic, niche, plan, best_script,
+        "NEEDS HUMAN REVIEW", remaining_issues
+    )
+    print(f"Saved output: {output_path}")
 
 
 if __name__ == "__main__":
