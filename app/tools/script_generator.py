@@ -75,7 +75,7 @@ CTA: One relevant closing sentence.
         "stream": False,
         "options": {
             "temperature": 0.3,
-            "num_predict": 180,
+            "num_predict": 250,
         },
     }
 
