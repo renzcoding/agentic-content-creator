@@ -16,7 +16,7 @@ def save_content(
     status: str,
     issues: list[str],
 ) -> str:
-    """Save generated content as JSON and Markdown."""
+    """Save generated content as JSON, Markdown, and plain text."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
