@@ -8,6 +8,9 @@ from config.settings import MAX_REVISION_ATTEMPTS
 
 def run_workflow(topic: str, niche: str = "tech") -> None:
     """Plan, generate, evaluate, and revise content."""
+    if len(topic.strip()) < 5:
+        print("Error: Topic must contain at least 5 characters.")
+        return
     plan = plan_content(topic, niche)
 
     print("\nCONTENT PLAN:")
