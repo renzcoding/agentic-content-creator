@@ -19,8 +19,8 @@ def create_content() -> None:
 
     topic = input("Enter a content topic: ").strip()
 
-    if not topic:
-        print("Error: Topic cannot be empty.")
+    if len(topic) < 5:
+        print("Error: Topic must contain at least 5 characters.")
         return
 
     run_workflow(topic, niche)
