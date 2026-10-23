@@ -1,14 +1,14 @@
 
 from app.tools.niche_planner import NICHES
+from app.tools.content_history import get_content_history
 from app.workflows.content_workflow import run_workflow
 
 
-def main() -> None:
-    """Run the content creation workflow."""
-    print("Available niches:")
+def create_content() -> None:
+    print("\nAvailable niches:")
 
     for key, name in NICHES.items():
-       print(f"- {key}: {name['name']}")
+        print(f"- {key}: {name['name']}")
 
     niche = input("Choose a niche key: ").strip().lower()
 
@@ -23,6 +23,43 @@ def main() -> None:
         return
 
     run_workflow(topic, niche)
+
+
+def show_history() -> None:
+    records = get_content_history()
+
+    print(f"\nContent history: {len(records)} records")
+
+    if not records:
+        print("No content history found.")
+        return
+
+    for index, item in enumerate(records, 1):
+        print(
+            f"{index}. [{item.get('status', 'UNKNOWN')}] "
+            f"{item.get('topic', 'Untitled')} "
+            f"({item.get('niche', 'N/A')})"
+        )
+
+
+def main() -> None:
+    while True:
+        print("\n=== Agentic Content Creator ===")
+        print("1. Create content")
+        print("2. View content history")
+        print("3. Exit")
+
+        choice = input("Choose an option: ").strip()
+
+        if choice == "1":
+            create_content()
+        elif choice == "2":
+            show_history()
+        elif choice == "3":
+            print("Goodbye!")
+            break
+        else:
+            print("Error: Invalid option.")
 
 
 if __name__ == "__main__":
