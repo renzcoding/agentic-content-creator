@@ -1,3 +1,4 @@
+
 import json
 import re
 from datetime import datetime
@@ -15,13 +16,14 @@ def save_content(
     status: str,
     issues: list[str],
 ) -> str:
-    """Save generated content and quality results as a JSON file."""
+    """Save generated content as JSON and Markdown."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     slug = re.sub(r"[^a-z0-9]+", "_", topic.lower()).strip("_")[:50]
-    filename = f"{timestamp}_{slug or 'content'}.json"
-    output_path = OUTPUT_DIR / filename
+    filename = f"{timestamp}_{slug or 'content'}"
+    json_path = OUTPUT_DIR / f"{filename}.json"
+    markdown_path = OUTPUT_DIR / f"{filename}.md"
 
     data = {
         "created_at": datetime.now().astimezone().isoformat(),
@@ -33,9 +35,29 @@ def save_content(
         "quality_issues": issues,
     }
 
-    output_path.write_text(
+    json_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
-    return str(output_path)
+    markdown = (
+        f"# {topic}\n\n"
+        f"- **Niche:** {niche}\n"
+        f"- **Status:** {status}\n"
+        f"- **Created:** {data['created_at']}\n\n"
+        f"## Content Plan\n\n"
+        f"- **Audience:** {plan.get('target_audience', '')}\n"
+        f"- **Goal:** {plan.get('content_goal', '')}\n"
+        f"- **Format:** {plan.get('format', '')}\n\n"
+        f"## Script\n\n{script}\n\n"
+        f"## Quality Issues\n\n"
+        + (
+            "\n".join(f"- {issue}" for issue in issues)
+            if issues
+            else "- None"
+        )
+        + "\n"
+    )
+
+    markdown_path.write_text(markdown, encoding="utf-8")
+    return str(json_path)
