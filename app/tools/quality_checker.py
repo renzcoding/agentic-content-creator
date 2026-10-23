@@ -15,7 +15,7 @@ def quality_check(script: str, topic: str = "") -> dict:
             for word in re.findall(r"\b\w+\b", topic)
             if len(word) > 3
         }
-
+        
         ignored_topic_words = {
             "cara", "untuk", "dalam", "dengan", "yang",
             "agar", "bisa", "pada", "memanfaatkan",
@@ -152,11 +152,6 @@ def quality_check(script: str, topic: str = "") -> dict:
         ]
 
 
-        topic_words = {
-            word.lower()
-            for word in re.findall(r"\b\w+\b", topic)
-            if len(word) > 3
-        }
         normalized_lines = [
             re.sub(r"[^\w\s]", "", line)
             for line in body_lines
