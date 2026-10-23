@@ -1,6 +1,6 @@
 
 from app.tools.niche_planner import NICHES
-from app.tools.content_history import get_content_history, get_content_by_index
+from app.tools.content_history import get_content_history, get_content_by_index, get_history_summary
 from app.workflows.content_workflow import run_workflow
 
 
@@ -62,6 +62,12 @@ def show_history() -> None:
 
 def main() -> None:
     while True:
+        summary = get_history_summary()
+        print(
+            f"\nStats: {summary['total']} total | "
+            f"{summary['approved']} approved | "
+            f"{summary['needs_review']} needs review"
+        )
         print("\n=== Agentic Content Creator ===")
         print("1. Create content")
         print("2. View content history")
