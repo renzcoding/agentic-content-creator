@@ -1,6 +1,6 @@
 
 from app.tools.niche_planner import NICHES
-from app.tools.content_history import get_content_history
+from app.tools.content_history import get_content_history, get_content_by_index
 from app.workflows.content_workflow import run_workflow
 
 
@@ -27,7 +27,6 @@ def create_content() -> None:
 
 def show_history() -> None:
     records = get_content_history()
-
     print(f"\nContent history: {len(records)} records")
 
     if not records:
@@ -41,6 +40,25 @@ def show_history() -> None:
             f"({item.get('niche', 'N/A')})"
         )
 
+    choice = input("\nEnter a number to view details, or press Enter to return: ").strip()
+
+    if not choice:
+        return
+
+    if not choice.isdigit():
+        print("Error: Please enter a valid number.")
+        return
+
+    item = get_content_by_index(int(choice))
+
+    if item is None:
+        print("Error: Content not found.")
+        return
+
+    print(f"\nTopic: {item.get('topic', 'Untitled')}")
+    print(f"Status: {item.get('status', 'UNKNOWN')}")
+    print(f"Niche: {item.get('niche', 'N/A')}")
+    print(f"\nScript:\n{item.get('script', 'No script available')}")
 
 def main() -> None:
     while True:

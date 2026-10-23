@@ -40,3 +40,13 @@ def get_history_summary() -> dict:
             for item in records
         ),
     }
+
+
+def get_content_by_index(index: int) -> dict | None:
+    """Get a saved content record by its one-based history index."""
+    records = get_content_history()
+
+    if index < 1 or index > len(records):
+        return None
+
+    return records[index - 1]
