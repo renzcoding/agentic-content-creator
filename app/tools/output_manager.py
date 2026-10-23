@@ -24,6 +24,7 @@ def save_content(
     filename = f"{timestamp}_{slug or 'content'}"
     json_path = OUTPUT_DIR / f"{filename}.json"
     markdown_path = OUTPUT_DIR / f"{filename}.md"
+    text_path = OUTPUT_DIR / f"{filename}.txt"
 
     data = {
         "created_at": datetime.now().astimezone().isoformat(),
@@ -60,4 +61,5 @@ def save_content(
     )
 
     markdown_path.write_text(markdown, encoding="utf-8")
+    text_path.write_text(script.strip() + "\n", encoding="utf-8")
     return str(json_path)
