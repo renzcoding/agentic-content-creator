@@ -1,3 +1,4 @@
+from pathlib import Path
 
 from app.tools.niche_planner import NICHES
 from app.tools.content_history import get_content_history, get_content_by_index, get_history_summary
@@ -59,6 +60,8 @@ def show_history() -> None:
     print(f"Status: {item.get('status', 'UNKNOWN')}")
     print(f"Niche: {item.get('niche', 'N/A')}")
     print(f"\nScript:\n{item.get('script', 'No script available')}")
+    text_filename = Path(item.get("filename", "")).with_suffix(".txt").name
+    print(f"Text file: outputs/{text_filename}")
 
 def main() -> None:
     while True:
