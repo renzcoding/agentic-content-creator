@@ -54,7 +54,9 @@ Requirements:
 - Do not repeat the same task, benefit, or example across points.
 - Do not invent facts, statistics, quotes, or sources.
 - End with one relevant CTA question.
-- Keep the entire script between 60 and 100 words.
+- Keep the entire script between 60 and 85 words, including HOOK, BODY, and CTA.
+- Each numbered point must contain only one concise sentence.
+- The CTA must contain only one short question.
 - Do not use markdown formatting or quotation marks.
 - Return only the finished script in the required format.
 
@@ -73,7 +75,7 @@ CTA: One relevant closing sentence.
         "stream": False,
         "options": {
             "temperature": 0.3,
-            "num_predict": 350,
+            "num_predict": 180,
         },
     }
 
@@ -112,7 +114,7 @@ QUALITY ISSUES:
 
 Instructions:
 - Write in natural, concise Indonesian.
-- Keep the script under 100 words.
+- Keep the complete script between 60 and 85 words, including all labels.
 - Preserve the original topic and intended audience.
 - Make all three BODY points specific and practical.
 - Each BODY point must teach a different action or use case.
@@ -121,7 +123,7 @@ Instructions:
 - Make every sentence directly relevant to the topic.
 - Do not invent statistics or unsupported factual claims.
 - Do not use markdown formatting.
-- Return only the complete script in this format:
+- Return only the complete script. Do not add quotes, markdown, explanations, or incomplete sentences.
 - The CTA must be one complete question with at least 6 words.
 - Ensure HOOK, BODY, and CTA are complete.
 - Rewrite the entire script, not just individual sections.
@@ -140,7 +142,7 @@ CTA: One short question.
         "stream": False,
         "options": {
             "temperature": 0.1,
-            "num_predict": 220,
+            "num_predict": 180,
         },
     }
 
@@ -160,3 +162,47 @@ CTA: One short question.
     except Exception as error:
         print(f"Warning: Revision failed: {error}")
         return script
+
+def trim_script(script: str) -> str:
+    """Trim script sections to keep generated content concise."""
+    limits = {
+        "HOOK": 15,
+        "BODY": 45,
+        "CTA": 12,
+    }
+
+    sections = re.split(r"(?m)^(HOOK:|BODY:|CTA:)", script)
+    if len(sections) < 7:
+        return script
+
+    result = []
+
+    for index in range(1, len(sections), 2):
+        label = sections[index]
+        content = sections[index + 1].strip()
+        words = content.split()
+
+        if label == "BODY:":
+            lines = content.splitlines()
+            trimmed_lines = []
+            remaining = limits["BODY"]
+
+            for line in lines:
+                line_words = line.split()
+                if not line_words:
+                    continue
+                if len(line_words) > remaining:
+                    line = " ".join(line_words[:remaining])
+                    line = line.rstrip(" ,;:")
+                trimmed_lines.append(line)
+                remaining -= min(len(line_words), remaining)
+                if remaining <= 0:
+                    break
+
+            content = "\n".join(trimmed_lines)
+        else:
+            content = " ".join(words[:limits[label[:-1]]])
+
+        result.append(f"{label}\n{content}")
+
+    return "\n".join(result)
