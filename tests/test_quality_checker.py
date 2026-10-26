@@ -1,9 +1,16 @@
 import unittest
 
 from app.tools.quality_checker import quality_check
+from main import is_valid_topic
 
 
 class TestQualityChecker(unittest.TestCase):
+    def test_rejects_short_topic(self):
+        self.assertFalse(is_valid_topic("AI"))
+
+    def test_accepts_valid_topic(self):
+        self.assertTrue(is_valid_topic("AI tools"))
+
     def test_rejects_empty_script(self):
         result = quality_check("")
         self.assertFalse(result["approved"])

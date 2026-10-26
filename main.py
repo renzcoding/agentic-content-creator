@@ -4,6 +4,8 @@ from app.tools.niche_planner import NICHES
 from app.tools.content_history import get_content_history, get_content_by_index, get_history_summary
 from app.workflows.content_workflow import run_workflow
 
+def is_valid_topic(topic: str) -> bool:
+    return len(topic.strip()) >= 5
 
 def create_content() -> None:
     print("\nAvailable niches:")
@@ -19,7 +21,7 @@ def create_content() -> None:
 
     topic = input("Enter a content topic: ").strip()
 
-    if len(topic) < 5:
+    if not is_valid_topic(topic):
         print("Error: Topic must contain at least 5 characters.")
         return
 
