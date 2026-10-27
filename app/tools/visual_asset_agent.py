@@ -1,4 +1,6 @@
 import re
+import json
+from pathlib import Path
 
 def create_scene_plan(script: str) -> list[dict]:
     """Convert a script into a visual plan for short-form video scenes."""
@@ -57,3 +59,14 @@ def create_scene_plan(script: str) -> list[dict]:
                 })
 
     return scenes
+
+
+def save_scene_plan(scenes: list[dict], output_path: str) -> str:
+    """Save a scene plan as a JSON file."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(scenes, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return str(path)
