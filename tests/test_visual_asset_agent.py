@@ -3,7 +3,12 @@ import tempfile
 import unittest
 
 from pathlib import Path
-from app.tools.visual_asset_agent import create_scene_plan, save_scene_plan
+
+from app.tools.visual_asset_agent import (
+    create_scene_plan,
+    generate_visual_description,
+    save_scene_plan,
+)
 
 
 class TestVisualAssetAgent(unittest.TestCase):
@@ -46,6 +51,21 @@ class TestVisualAssetAgent(unittest.TestCase):
                 json.loads(output_path.read_text(encoding="utf-8")),
                 scenes,
             )
+
+    def test_generates_ai_visual_description(self):
+        description = generate_visual_description(
+            "BODY_1",
+            "Gunakan AI untuk mengotomatisasi pekerjaan.",
+        )
+        self.assertIn("AI interface", description)
+
+
+    def test_generates_cta_visual_description(self):
+        description = generate_visual_description(
+            "CTA",
+            "Coba tips ini hari ini.",
+        )
+        self.assertIn("closing scene", description)
 
 if __name__ == "__main__":
     unittest.main()
