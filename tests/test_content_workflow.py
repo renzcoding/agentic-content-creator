@@ -17,6 +17,39 @@ class TestContentWorkflow(unittest.TestCase):
             "Error: Topic must contain at least 5 characters."
         )
 
+    @patch("app.workflows.content_workflow.save_content")
+    @patch("app.workflows.content_workflow.quality_check")
+    @patch("app.workflows.content_workflow.generate_script")
+    @patch("app.workflows.content_workflow.plan_content")
+    def test_saves_approved_script(
+        self, mock_plan, mock_generate, mock_quality, mock_save
+    ):
+        mock_plan.return_value = {
+            "topic": "AI for business",
+            "niche": "tech",
+            "target_audience": "Business owners",
+            "key_points": ["Automation"],
+            "hook_direction": "Ask a question",
+            "cta": "Try this today",
+        }
+        mock_generate.return_value = "HOOK: Use AI to save time."
+        mock_quality.return_value = {
+            "approved": True,
+            "issues": [],
+        }
+
+        with patch("builtins.print"):
+            run_workflow("AI for business", "tech")
+
+        mock_save.assert_called_once_with(
+            "AI for business",
+            "tech",
+            mock_plan.return_value,
+            mock_generate.return_value,
+            "APPROVED",
+            [],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
