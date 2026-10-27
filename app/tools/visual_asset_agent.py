@@ -2,6 +2,27 @@ import re
 import json
 from pathlib import Path
 
+def generate_visual_description(section: str, narration: str) -> str:
+    """Generate a basic visual direction from scene narration."""
+    text = narration.lower()
+
+    if section == "HOOK":
+        return f"Create an attention-grabbing opening visual for: {narration}"
+
+    if section == "CTA":
+        return "Show a clean closing scene with space for a call-to-action caption."
+
+    if any(word in text for word in ["ai", "artificial intelligence", "otomatisasi"]):
+        return "Show an AI interface or automation workflow relevant to the narration."
+
+    if any(word in text for word in ["bisnis", "usaha", "pelanggan", "penjualan"]):
+        return "Show a small business owner working with customers or reviewing sales."
+
+    if any(word in text for word in ["waktu", "produktif", "efisien"]):
+        return "Show a person organizing tasks or completing work efficiently."
+
+    return f"Show a realistic, relevant example of: {narration}"
+
 def create_scene_plan(script: str) -> list[dict]:
     """Convert a script into a visual plan for short-form video scenes."""
     scenes = []
@@ -18,8 +39,8 @@ def create_scene_plan(script: str) -> list[dict]:
                     "scene": len(scenes) + 1,
                     "section": "HOOK",
                     "narration": narration,
-                    "visual_description": (
-                        "Show an opening visual related to the topic."
+                    "visual_description": generate_visual_description(
+                        "HOOK", narration,
                     ),
                     "duration_seconds": 3,
                 })
@@ -35,8 +56,8 @@ def create_scene_plan(script: str) -> list[dict]:
                     "scene": len(scenes) + 1,
                     "section": "CTA",
                     "narration": narration,
-                    "visual_description": (
-                        "Show a closing visual with space for a CTA caption."
+                    "visual_description": generate_visual_description(
+                        "CTA", narration
                     ),
                     "duration_seconds": 3,
                 })
@@ -52,8 +73,8 @@ def create_scene_plan(script: str) -> list[dict]:
                     "scene": len(scenes) + 1,
                     "section": f"BODY_{point_number}",
                     "narration": match.group(1).strip(),
-                    "visual_description": (
-                        "Show a clear visual example of this practical point."
+                    "visual_description": generate_visual_description(
+                        f"BODY_{point_number}", match.group(1).strip()
                     ),
                     "duration_seconds": 5,
                 })
