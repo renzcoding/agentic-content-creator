@@ -12,11 +12,11 @@ def generate_visual_description(section: str, narration: str) -> str:
     if section == "CTA":
         return "Show a clean closing scene with space for a call-to-action caption."
 
-    if any(word in text for word in ["ai", "artificial intelligence", "otomatisasi"]):
-        return "Show an AI interface or automation workflow relevant to the narration."
-
     if any(word in text for word in ["bisnis", "usaha", "pelanggan", "penjualan"]):
         return "Show a small business owner working with customers or reviewing sales."
+
+    if any(word in text for word in ["ai", "artificial intelligence", "otomatisasi"]):
+        return "Show an AI interface or automation workflow relevant to the narration."
 
     if any(word in text for word in ["waktu", "produktif", "efisien"]):
         return "Show a person organizing tasks or completing work efficiently."

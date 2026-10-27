@@ -100,5 +100,20 @@ class TestVisualAssetAgent(unittest.TestCase):
         expected_duration = estimate_scene_duration(narration)
         self.assertEqual(scenes[1]["duration_seconds"], expected_duration)
 
+    def test_generates_business_visual_description(self):
+        description = generate_visual_description(
+            "BODY_1",
+            "Gunakan AI untuk meningkatkan penjualan bisnis.",
+        )
+        self.assertIn("small business owner", description)
+
+
+    def test_generates_productivity_visual_description(self):
+        description = generate_visual_description(
+            "BODY_1",
+            "Atur waktu agar lebih produktif dan efisien.",
+        )
+        self.assertIn("organizing tasks", description)
+
 if __name__ == "__main__":
     unittest.main()
