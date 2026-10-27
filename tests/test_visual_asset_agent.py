@@ -115,5 +115,12 @@ class TestVisualAssetAgent(unittest.TestCase):
         )
         self.assertIn("organizing tasks", description)
 
+    def test_generates_educational_visual_description(self):
+        description = generate_visual_description(
+            "BODY_1",
+            "Pelajari tutorial untuk memahami konsep baru.",
+        )
+        self.assertIn("educational materials", description)
+
 if __name__ == "__main__":
     unittest.main()

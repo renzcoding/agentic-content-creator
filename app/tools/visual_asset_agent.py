@@ -21,6 +21,9 @@ def generate_visual_description(section: str, narration: str) -> str:
     if any(word in text for word in ["waktu", "produktif", "efisien"]):
         return "Show a person organizing tasks or completing work efficiently."
 
+    if any(word in text for word in ["belajar", "edukasi", "tutorial", "memahami"]):
+        return "Show a person learning with educational materials or following a tutorial."
+
     return f"Show a realistic, relevant example of: {narration}"
 
 
