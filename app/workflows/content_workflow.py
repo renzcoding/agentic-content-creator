@@ -4,6 +4,7 @@ from app.tools.niche_planner import plan_content
 from app.tools.script_generator import generate_script, revise_script
 from app.tools.quality_checker import quality_check
 from app.tools.visual_asset_agent import create_scene_plan, save_scene_plan
+from app.tools.voice_asset_agent import generate_voice
 from config.settings import MAX_REVISION_ATTEMPTS
 
 
@@ -53,6 +54,13 @@ def run_workflow(topic: str, niche: str = "tech") -> None:
                 scene_path = output_path.rsplit(".", 1)[0] + "_scene_plan.json"
                 save_scene_plan(scenes, scene_path)
                 print(f"Saved scene plan: {scene_path}")
+
+                voice_path = output_path.rsplit(".", 1)[0] + "_voice.wav"
+                try:
+                    generate_voice(script, voice_path)
+                    print(f"Saved voice audio: {voice_path}")
+                except (OSError, ValueError) as error:
+                    print(f"Voice generation failed: {error}")
 
             return
 
