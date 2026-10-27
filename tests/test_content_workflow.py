@@ -21,8 +21,11 @@ class TestContentWorkflow(unittest.TestCase):
     @patch("app.workflows.content_workflow.quality_check")
     @patch("app.workflows.content_workflow.generate_script")
     @patch("app.workflows.content_workflow.plan_content")
+    @patch("app.workflows.content_workflow.save_scene_plan")
+    @patch("app.workflows.content_workflow.create_scene_plan")
     def test_saves_approved_script(
-        self, mock_plan, mock_generate, mock_quality, mock_save
+        self, mock_plan_scenes, mock_save_scenes,
+        mock_plan, mock_generate, mock_quality, mock_save
     ):
         mock_plan.return_value = {
             "topic": "AI for business",
@@ -50,6 +53,14 @@ class TestContentWorkflow(unittest.TestCase):
             [],
         )
 
+        mock_plan_scenes.assert_called_once_with(
+            mock_generate.return_value
+        )
+        mock_save_scenes.assert_called_once_with(
+            mock_plan_scenes.return_value,
+            unittest.mock.ANY,
+        )
+
 
     @patch("app.workflows.content_workflow.save_content")
     @patch("app.workflows.content_workflow.quality_check")
@@ -67,6 +78,7 @@ class TestContentWorkflow(unittest.TestCase):
             "cta": "Try this today",
         }
         mock_generate.return_value = "Draft script for review."
+        
         mock_quality.return_value = {
             "approved": False,
             "issues": ["Weak hook"],
