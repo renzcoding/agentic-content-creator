@@ -51,5 +51,41 @@ class TestContentWorkflow(unittest.TestCase):
         )
 
 
+    @patch("app.workflows.content_workflow.save_content")
+    @patch("app.workflows.content_workflow.quality_check")
+    @patch("app.workflows.content_workflow.generate_script")
+    @patch("app.workflows.content_workflow.plan_content")
+    def test_saves_script_for_human_review(
+        self, mock_plan, mock_generate, mock_quality, mock_save
+    ):
+        mock_plan.return_value = {
+            "topic": "AI for business",
+            "niche": "tech",
+            "target_audience": "Business owners",
+            "key_points": ["Automation"],
+            "hook_direction": "Ask a question",
+            "cta": "Try this today",
+        }
+        mock_generate.return_value = "Draft script for review."
+        mock_quality.return_value = {
+            "approved": False,
+            "issues": ["Weak hook"],
+        }
+
+        with patch(
+            "app.workflows.content_workflow.MAX_REVISION_ATTEMPTS", 1
+        ), patch("builtins.print"):
+            run_workflow("AI for business", "tech")
+
+        mock_save.assert_called_once_with(
+            "AI for business",
+            "tech",
+            mock_plan.return_value,
+            mock_generate.return_value,
+            "NEEDS HUMAN REVIEW",
+            ["Weak hook"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
