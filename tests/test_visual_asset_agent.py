@@ -82,8 +82,23 @@ class TestVisualAssetAgent(unittest.TestCase):
             "Gunakan AI untuk membantu merangkum dokumen dan "
             "menyelesaikan pekerjaan sehari-hari dengan lebih efisien."
         )
-
         self.assertGreater(long_duration, short_duration)
+    
+    def test_scene_plan_uses_estimated_duration(self):
+        narration = "Gunakan AI untuk merangkum dokumen dan menyelesaikan pekerjaan dengan lebih cepat setiap hari."
+        script = (
+            "HOOK: Kenali manfaat AI.\n"
+            "BODY:\n"
+            f"1. {narration}\n"
+            "2. Gunakan AI untuk menyusun jadwal.\n"
+            "3. Coba AI untuk tugas harian.\n"
+            "CTA: Apa yang ingin Anda coba?"
+        )
+
+        scenes = create_scene_plan(script)
+
+        expected_duration = estimate_scene_duration(narration)
+        self.assertEqual(scenes[1]["duration_seconds"], expected_duration)
 
 if __name__ == "__main__":
     unittest.main()
