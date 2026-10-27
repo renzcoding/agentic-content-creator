@@ -76,5 +76,14 @@ class TestVisualAssetAgent(unittest.TestCase):
         narration = "word " * 100
         self.assertEqual(estimate_scene_duration(narration), 10)
 
+    def test_longer_narration_has_longer_duration(self):
+        short_duration = estimate_scene_duration("Gunakan AI.")
+        long_duration = estimate_scene_duration(
+            "Gunakan AI untuk membantu merangkum dokumen dan "
+            "menyelesaikan pekerjaan sehari-hari dengan lebih efisien."
+        )
+
+        self.assertGreater(long_duration, short_duration)
+
 if __name__ == "__main__":
     unittest.main()
