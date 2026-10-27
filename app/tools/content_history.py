@@ -18,6 +18,11 @@ def get_content_history() -> list[dict]:
     ):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+
+            # Skip JSON files that do not contain a dictionary.
+            if not isinstance(data, dict):
+                continue
+
             data["filename"] = path.name
             records.append(data)
         except (json.JSONDecodeError, OSError):
