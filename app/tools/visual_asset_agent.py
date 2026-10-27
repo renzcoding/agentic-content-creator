@@ -33,6 +33,10 @@ def estimate_scene_duration(narration: str) -> int:
     duration = round(word_count / 2.5)
     return max(3, min(duration, 10))
 
+def estimate_total_duration(scenes: list[dict]) -> int:
+    """Calculate the total estimated video duration."""
+    return sum(scene["duration_seconds"] for scene in scenes)
+
 def create_scene_plan(script: str) -> list[dict]:
     """Convert a script into a visual plan for short-form video scenes."""
     scenes = []
