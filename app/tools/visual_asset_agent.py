@@ -23,6 +23,13 @@ def generate_visual_description(section: str, narration: str) -> str:
 
     return f"Show a realistic, relevant example of: {narration}"
 
+
+def estimate_scene_duration(narration: str) -> int:
+    """Estimate scene duration based on narration length."""
+    word_count = len(narration.split())
+    duration = round(word_count / 2.5)
+    return max(3, min(duration, 10))
+
 def create_scene_plan(script: str) -> list[dict]:
     """Convert a script into a visual plan for short-form video scenes."""
     scenes = []
@@ -42,7 +49,7 @@ def create_scene_plan(script: str) -> list[dict]:
                     "visual_description": generate_visual_description(
                         "HOOK", narration,
                     ),
-                    "duration_seconds": 3,
+                    "duration_seconds": estimate_scene_duration(narration),
                 })
 
         elif line == "BODY:":
@@ -59,7 +66,7 @@ def create_scene_plan(script: str) -> list[dict]:
                     "visual_description": generate_visual_description(
                         "CTA", narration
                     ),
-                    "duration_seconds": 3,
+                    "duration_seconds": estimate_scene_duration(narration),
                 })
 
         elif section == "BODY":
@@ -76,7 +83,7 @@ def create_scene_plan(script: str) -> list[dict]:
                     "visual_description": generate_visual_description(
                         f"BODY_{point_number}", match.group(1).strip()
                     ),
-                    "duration_seconds": 5,
+                    "duration_seconds": estimate_scene_duration(match.group(1).strip()),
                 })
 
     return scenes

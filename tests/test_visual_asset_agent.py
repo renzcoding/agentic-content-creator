@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.tools.visual_asset_agent import (
     create_scene_plan,
+    estimate_scene_duration,
     generate_visual_description,
     save_scene_plan,
 )
@@ -66,6 +67,14 @@ class TestVisualAssetAgent(unittest.TestCase):
             "Coba tips ini hari ini.",
         )
         self.assertIn("closing scene", description)
+
+    def test_scene_duration_has_minimum_of_three_seconds(self):
+        self.assertEqual(estimate_scene_duration("AI"), 3)
+
+
+    def test_scene_duration_has_maximum_of_ten_seconds(self):
+        narration = "word " * 100
+        self.assertEqual(estimate_scene_duration(narration), 10)
 
 if __name__ == "__main__":
     unittest.main()
