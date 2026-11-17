@@ -40,6 +40,7 @@ class TestContentWorkflow(unittest.TestCase):
             "approved": True,
             "issues": [],
         }
+        mock_save.return_value = "outputs/test_content.json"
 
         with patch("builtins.print"):
             run_workflow("AI for business", "tech")
@@ -83,6 +84,8 @@ class TestContentWorkflow(unittest.TestCase):
             "approved": False,
             "issues": ["Weak hook"],
         }
+
+        mock_save.return_value = "outputs/test_content.json"
 
         with patch(
             "app.workflows.content_workflow.MAX_REVISION_ATTEMPTS", 1
