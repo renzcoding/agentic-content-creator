@@ -11,7 +11,7 @@ class ConversationMemory:
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict[str, list[dict[str, str]]]:
-        """Load all sessions or return an empty dictionary."""
+        """Load sessions and migrate legacy conversation data when needed."""
         if not self.file_path.exists():
             return {}
 
@@ -19,6 +19,16 @@ class ConversationMemory:
             data = json.loads(self.file_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             return {}
+
+        # Migrate legacy list-based history into the default session.
+        if isinstance(data, list):
+            sessions = {"default": data}
+
+            self.file_path.write_text(
+                json.dumps(sessions, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            return sessions
 
         return data if isinstance(data, dict) else {}
 

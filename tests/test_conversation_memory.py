@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -103,6 +104,45 @@ class TestConversationMemory(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.memory.clear(session_id=" ")
+
+
+    def test_migrates_legacy_list_format(self):
+        """Verify that legacy messages migrate into the default session."""
+        legacy_messages = [
+            {"role": "user", "content": "Old question"},
+            {"role": "assistant", "content": "Old answer"},
+        ]
+        self.memory.file_path.write_text(
+            json.dumps(legacy_messages),
+            encoding="utf-8",
+        )
+
+        history = self.memory.get_history()
+
+        self.assertEqual(history, legacy_messages)
+
+        stored_data = json.loads(
+            self.memory.file_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual(stored_data, {"default": legacy_messages})
+
+    def test_preserves_legacy_messages_when_adding_new_message(self):
+        """Verify that new messages preserve migrated legacy history."""
+        legacy_messages = [
+            {"role": "user", "content": "Old question"},
+        ]
+        self.memory.file_path.write_text(
+            json.dumps(legacy_messages),
+            encoding="utf-8",
+        )
+
+        self.memory.add_message("assistant", "New answer")
+
+        history = self.memory.get_history()
+
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0]["content"], "Old question")
+        self.assertEqual(history[1]["content"], "New answer")
 
 
 if __name__ == "__main__":
