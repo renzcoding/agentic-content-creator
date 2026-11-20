@@ -1,8 +1,11 @@
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import Mock
 
 from app.agents.product_manager import ProductManagerAgent
 from app.memory.base_memory import BaseMemory
+from app.memory.conversation_memory import ConversationMemory
 from app.services.llm.base_provider import BaseLLMProvider
 
 
@@ -69,6 +72,69 @@ class TestProductManagerAgent(unittest.TestCase):
 
         self.assertIn("PRODUCT REQUIREMENTS", result)
         self.provider.generate.assert_called_once()
+
+
+    def test_includes_recent_conversation_in_prompt(self):
+        """Verify that recent conversation is included in the LLM prompt."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message("user", "Build a content platform.")
+            conversation.add_message("assistant", "Use React and Laravel.")
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+            )
+            agent.run("Add an analytics feature")
+
+            prompt = self.provider.generate.call_args.args[0]
+            self.assertIn("Recent Conversation:", prompt)
+            self.assertIn("Build a content platform.", prompt)
+            self.assertIn("Use React and Laravel.", prompt)
+
+    def test_persists_user_and_assistant_messages(self):
+        """Verify that successful responses are saved to conversation history."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+            )
+
+            result = agent.run("Build a dashboard")
+            history = conversation.get_history()
+
+            self.assertEqual(len(history), 2)
+            self.assertEqual(history[0]["role"], "user")
+            self.assertEqual(history[0]["content"], "Build a dashboard")
+            self.assertEqual(history[1]["role"], "assistant")
+            self.assertEqual(history[1]["content"], result)
+
+    def test_limits_recent_conversation_history(self):
+        """Verify that only the configured number of messages enter the prompt."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message("user", "Old message")
+            conversation.add_message("assistant", "Old response")
+            conversation.add_message("user", "Recent message")
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=2,
+            )
+            agent.run("Continue the project")
+
+            prompt = self.provider.generate.call_args.args[0]
+            self.assertNotIn("Old message", prompt)
+            self.assertIn("Old response", prompt)
+            self.assertIn("Recent message", prompt)
 
 
 if __name__ == "__main__":
