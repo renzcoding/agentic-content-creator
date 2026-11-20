@@ -14,6 +14,7 @@ class ProductManagerAgent(BaseAgent):
         memory: BaseMemory | None = None,
         conversation_memory: ConversationMemory | None = None,
         history_limit: int = 5,
+        session_id: str = "default",
     ) -> None:
         """Initialize the agent with optional memory and LLM dependencies."""
         super().__init__(
@@ -29,6 +30,10 @@ class ProductManagerAgent(BaseAgent):
         self.conversation_memory = conversation_memory
         self.history_limit = history_limit
 
+        if not session_id.strip():
+            raise ValueError("Session ID must not be empty.")
+        self.session_id = session_id.strip()
+
     def run(self, task: str) -> str:
         """Generate requirements using project context and recent conversation."""
         if not task.strip():
@@ -39,7 +44,10 @@ class ProductManagerAgent(BaseAgent):
 
         # Retrieve recent conversation messages when configured.
         history = (
-            self.conversation_memory.get_history(limit=self.history_limit)
+            self.conversation_memory.get_history(
+                limit=self.history_limit,
+                session_id=self.session_id,
+            )
             if self.conversation_memory
             else []
         )
@@ -79,7 +87,11 @@ class ProductManagerAgent(BaseAgent):
 
         # Persist the current user request and assistant response.
         if self.conversation_memory:
-            self.conversation_memory.add_message("user", task.strip())
-            self.conversation_memory.add_message("assistant", response)
+            self.conversation_memory.add_message(
+                "user", task.strip(), self.session_id
+            )
+            self.conversation_memory.add_message(
+                "assistant", response, self.session_id
+            )
 
         return response

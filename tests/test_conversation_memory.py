@@ -72,5 +72,38 @@ class TestConversationMemory(unittest.TestCase):
         self.assertEqual(self.memory.get_history(), [])
 
 
+    def test_isolates_conversation_sessions(self):
+        """Verify that different sessions have separate conversation histories."""
+        self.memory.add_message("user", "Session A message", "session-a")
+        self.memory.add_message("user", "Session B message", "session-b")
+
+        history_a = self.memory.get_history(session_id="session-a")
+        history_b = self.memory.get_history(session_id="session-b")
+
+        self.assertEqual(history_a[0]["content"], "Session A message")
+        self.assertEqual(history_b[0]["content"], "Session B message")
+
+    def test_clears_only_selected_session(self):
+        """Verify that clearing one session preserves other sessions."""
+        self.memory.add_message("user", "Session A", "session-a")
+        self.memory.add_message("user", "Session B", "session-b")
+
+        self.memory.clear(session_id="session-a")
+
+        self.assertEqual(self.memory.get_history(session_id="session-a"), [])
+        self.assertEqual(len(self.memory.get_history(session_id="session-b")), 1)
+
+    def test_rejects_empty_session_id(self):
+        """Verify that empty session identifiers are rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.add_message("user", "Hello", " ")
+
+        with self.assertRaises(ValueError):
+            self.memory.get_history(session_id=" ")
+
+        with self.assertRaises(ValueError):
+            self.memory.clear(session_id=" ")
+
+
 if __name__ == "__main__":
     unittest.main()

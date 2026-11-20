@@ -137,5 +137,38 @@ class TestProductManagerAgent(unittest.TestCase):
             self.assertIn("Recent message", prompt)
 
 
+    def test_isolates_agent_conversation_sessions(self):
+        """Verify that the agent reads and writes only its assigned session."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message("user", "Private session A", "session-a")
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                session_id="session-b",
+            )
+            agent.run("Build a dashboard")
+
+            prompt = self.provider.generate.call_args.args[0]
+            self.assertNotIn("Private session A", prompt)
+
+            history_a = conversation.get_history(session_id="session-a")
+            history_b = conversation.get_history(session_id="session-b")
+
+            self.assertEqual(len(history_a), 1)
+            self.assertEqual(len(history_b), 2)
+
+    def test_rejects_empty_session_id(self):
+        """Verify that the agent rejects an empty session identifier."""
+        with self.assertRaises(ValueError):
+            ProductManagerAgent(
+                provider=self.provider,
+                session_id=" ",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
