@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from app.memory.conversation_memory import ConversationMemory
+from app.memory.base_conversation_storage import BaseConversationStorage
 
 
 class TestConversationMemory(unittest.TestCase):
@@ -143,6 +144,36 @@ class TestConversationMemory(unittest.TestCase):
         self.assertEqual(len(history), 2)
         self.assertEqual(history[0]["content"], "Old question")
         self.assertEqual(history[1]["content"], "New answer")
+
+
+    def test_uses_injected_storage_backend(self):
+        """Verify conversation memory uses an injected storage backend."""
+
+        class FakeStorage(BaseConversationStorage):
+            """Provide an in-memory storage implementation for testing."""
+
+            def __init__(self):
+                """Initialize empty in-memory session data."""
+                self.sessions = {}
+
+            def load(self):
+                """Return stored session data."""
+                return self.sessions
+
+            def save(self, sessions):
+                """Update stored session data."""
+                self.sessions = sessions
+
+        storage = FakeStorage()
+        memory = ConversationMemory(storage=storage)
+
+        memory.add_message("user", "Test injected storage.")
+
+        self.assertEqual(
+            storage.sessions["default"][0]["content"],
+            "Test injected storage.",
+        )
+        self.assertEqual(len(memory.get_history()), 1)
 
 
 if __name__ == "__main__":

@@ -1,33 +1,37 @@
-import json
 from pathlib import Path
+
+from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.json_conversation_storage import JsonConversationStorage
 
 
 class ConversationMemory:
-    """Persist conversation messages separately for each session."""
+    """Manage conversation history independently from storage implementation."""
 
-    def __init__(self, file_path: str = "outputs/conversations.json") -> None:
-        """Initialize session-based conversation storage."""
-        self.file_path = Path(file_path)
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(
+        self,
+        file_path: str = "outputs/conversations.json",
+        storage: BaseConversationStorage | None = None,
+    ) -> None:
+        """Initialize conversation memory with an injectable storage backend."""
+        self.storage = (
+            storage
+            if storage is not None
+            else JsonConversationStorage(file_path)
+        )
+        self.file_path = getattr(
+            self.storage,
+            "file_path",
+            Path(file_path),
+        )
 
     def _load(self) -> dict[str, list[dict[str, str]]]:
         """Load sessions and migrate legacy conversation data when needed."""
-        if not self.file_path.exists():
-            return {}
-
-        try:
-            data = json.loads(self.file_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return {}
+        data = self.storage.load()
 
         # Migrate legacy list-based history into the default session.
         if isinstance(data, list):
             sessions = {"default": data}
-
-            self.file_path.write_text(
-                json.dumps(sessions, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
+            self.storage.save(sessions)
             return sessions
 
         return data if isinstance(data, dict) else {}
@@ -56,10 +60,7 @@ class ConversationMemory:
             "content": content.strip(),
         })
 
-        self.file_path.write_text(
-            json.dumps(sessions, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        self.storage.save(sessions)
 
     def get_history(
         self,
@@ -85,7 +86,4 @@ class ConversationMemory:
         sessions = self._load()
         sessions.pop(session_id.strip(), None)
 
-        self.file_path.write_text(
-            json.dumps(sessions, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        self.storage.save(sessions)
