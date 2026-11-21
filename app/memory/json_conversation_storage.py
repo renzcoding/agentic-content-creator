@@ -23,8 +23,18 @@ class JsonConversationStorage(BaseConversationStorage):
             return {}
 
     def save(self, sessions: dict[str, list[dict[str, str]]]) -> None:
-        """Write conversation sessions to the JSON file."""
-        self.file_path.write_text(
-            json.dumps(sessions, indent=2, ensure_ascii=False),
-            encoding="utf-8",
+        """Atomically replace the JSON file after successfully writing temporary data."""
+        temporary_path = self.file_path.with_suffix(
+            f"{self.file_path.suffix}.tmp"
         )
+
+        try:
+            temporary_path.write_text(
+                json.dumps(sessions, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            temporary_path.replace(self.file_path)
+        finally:
+            # Remove leftover temporary files after failed writes.
+            if temporary_path.exists():
+                temporary_path.unlink()

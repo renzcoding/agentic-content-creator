@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.memory.json_conversation_storage import JsonConversationStorage
 
@@ -52,6 +53,30 @@ class TestJsonConversationStorage(unittest.TestCase):
         self.file_path.write_text("{invalid", encoding="utf-8")
 
         self.assertEqual(self.storage.load(), {})
+
+    def test_preserves_existing_data_when_temporary_write_fails(self):
+        """Verify failed temporary writes do not corrupt existing data."""
+        original_data = {"default": [{"role": "user", "content": "Original"}]}
+        self.storage.save(original_data)
+
+        with patch.object(Path, "write_text", side_effect=OSError("Write failed")):
+            with self.assertRaises(OSError):
+                self.storage.save({"default": [{"role": "user", "content": "New"}]})
+
+        self.assertEqual(self.storage.load(), original_data)
+
+        temporary_path = self.file_path.with_suffix(".json.tmp")
+        self.assertFalse(temporary_path.exists())
+
+    def test_replaces_existing_data_after_successful_save(self):
+        """Verify successful atomic writes replace existing conversation data."""
+        original_data = {"default": [{"role": "user", "content": "Original"}]}
+        updated_data = {"default": [{"role": "user", "content": "Updated"}]}
+
+        self.storage.save(original_data)
+        self.storage.save(updated_data)
+
+        self.assertEqual(self.storage.load(), updated_data)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -69,6 +70,28 @@ class TestSQLiteConversationStorage(unittest.TestCase):
         self.storage.save(new_sessions)
 
         self.assertEqual(self.storage.load(), new_sessions)
+
+
+    def test_rolls_back_when_insert_fails(self):
+        """Verify failed inserts preserve previously committed conversation data."""
+        original_sessions = {
+            "default": [
+                {"role": "user", "content": "Original message"},
+            ]
+        }
+        self.storage.save(original_sessions)
+
+        invalid_sessions = {
+            "default": [
+                {"role": "user", "content": "Valid message"},
+                {"role": "assistant", "content": None},
+            ]
+        }
+
+        with self.assertRaises(sqlite3.Error):
+            self.storage.save(invalid_sessions)
+
+        self.assertEqual(self.storage.load(), original_sessions)
 
 
 if __name__ == "__main__":
