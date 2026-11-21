@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from app.memory.base_conversation_storage import BaseConversationStorage
-from app.memory.json_conversation_storage import JsonConversationStorage
+from app.memory.conversation_storage_factory import create_conversation_storage
+from config import settings
 
 
 class ConversationMemory:
@@ -9,19 +10,19 @@ class ConversationMemory:
 
     def __init__(
         self,
-        file_path: str = "outputs/conversations.json",
+        file_path: str | None = None,
         storage: BaseConversationStorage | None = None,
     ) -> None:
         """Initialize conversation memory with an injectable storage backend."""
         self.storage = (
             storage
             if storage is not None
-            else JsonConversationStorage(file_path)
+            else create_conversation_storage(file_path)
         )
         self.file_path = getattr(
             self.storage,
             "file_path",
-            Path(file_path),
+            Path(file_path or settings.CONVERSATION_JSON_PATH),
         )
 
     def _load(self) -> dict[str, list[dict[str, str]]]:
