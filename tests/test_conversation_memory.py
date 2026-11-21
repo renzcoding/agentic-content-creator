@@ -5,6 +5,9 @@ from pathlib import Path
 
 from app.memory.conversation_memory import ConversationMemory
 from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.sqlite_conversation_storage import SQLiteConversationStorage
+import tempfile
+from pathlib import Path
 
 
 class TestConversationMemory(unittest.TestCase):
@@ -174,6 +177,28 @@ class TestConversationMemory(unittest.TestCase):
             "Test injected storage.",
         )
         self.assertEqual(len(memory.get_history()), 1)
+
+
+    def test_integrates_with_sqlite_storage(self):
+        """Verify conversation memory works with SQLite storage."""
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "conversations.db"
+            storage = SQLiteConversationStorage(str(database_path))
+            memory = ConversationMemory(storage=storage)
+
+            memory.add_message("user", "Hello SQLite.")
+            memory.add_message("assistant", "SQLite is working.")
+
+            history = memory.get_history()
+
+            self.assertEqual(len(history), 2)
+            self.assertEqual(history[0]["content"], "Hello SQLite.")
+            self.assertEqual(history[1]["content"], "SQLite is working.")
+
+            memory.clear()
+
+            self.assertEqual(memory.get_history(), [])
 
 
 if __name__ == "__main__":
