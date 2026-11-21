@@ -79,5 +79,19 @@ class TestJsonConversationStorage(unittest.TestCase):
         self.assertEqual(self.storage.load(), updated_data)
 
 
+    def test_rejects_invalid_conversation_data(self):
+        """Verify invalid conversation data is rejected before persistence."""
+        invalid_sessions = {
+            "default": [
+                {"role": "user", "content": None},
+            ]
+        }
+
+        with self.assertRaises(ValueError):
+            self.storage.save(invalid_sessions)
+
+        self.assertEqual(self.storage.load(), {})
+
+
 if __name__ == "__main__":
     unittest.main()

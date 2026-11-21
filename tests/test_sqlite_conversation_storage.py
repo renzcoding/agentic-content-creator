@@ -71,7 +71,6 @@ class TestSQLiteConversationStorage(unittest.TestCase):
 
         self.assertEqual(self.storage.load(), new_sessions)
 
-
     def test_rolls_back_when_insert_fails(self):
         """Verify failed inserts preserve previously committed conversation data."""
         original_sessions = {
@@ -81,17 +80,43 @@ class TestSQLiteConversationStorage(unittest.TestCase):
         }
         self.storage.save(original_sessions)
 
+        # Simulate a database-level failure after validation succeeds.
+        with sqlite3.connect(self.database_path) as connection:
+            connection.execute(
+                """
+                CREATE TRIGGER reject_test_message
+                BEFORE INSERT ON conversation_messages
+                WHEN NEW.content = 'Trigger failure'
+                BEGIN
+                    SELECT RAISE(ABORT, 'Simulated database failure');
+                END
+                """
+            )
+
         invalid_sessions = {
             "default": [
                 {"role": "user", "content": "Valid message"},
-                {"role": "assistant", "content": None},
+                {"role": "assistant", "content": "Trigger failure"},
             ]
         }
 
-        with self.assertRaises(sqlite3.Error):
+        with self.assertRaises(sqlite3.IntegrityError):
             self.storage.save(invalid_sessions)
 
         self.assertEqual(self.storage.load(), original_sessions)
+
+    def test_rejects_invalid_conversation_data(self):
+        """Verify invalid conversation data is rejected before persistence."""
+        invalid_sessions = {
+            "default": [
+                {"role": "user", "content": None},
+            ]
+        }
+
+        with self.assertRaises(ValueError):
+            self.storage.save(invalid_sessions)
+
+        self.assertEqual(self.storage.load(), {})
 
 
 if __name__ == "__main__":

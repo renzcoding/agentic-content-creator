@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.conversation_data_validator import ConversationDataValidator
 
 
 class JsonConversationStorage(BaseConversationStorage):
@@ -23,7 +24,8 @@ class JsonConversationStorage(BaseConversationStorage):
             return {}
 
     def save(self, sessions: dict[str, list[dict[str, str]]]) -> None:
-        """Atomically replace the JSON file after successfully writing temporary data."""
+        """Validate and atomically persist conversation session data."""
+        ConversationDataValidator.validate(sessions)
         temporary_path = self.file_path.with_suffix(
             f"{self.file_path.suffix}.tmp"
         )

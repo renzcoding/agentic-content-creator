@@ -3,6 +3,7 @@ from contextlib import closing
 from pathlib import Path
 
 from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.conversation_data_validator import ConversationDataValidator
 
 
 class SQLiteConversationStorage(BaseConversationStorage):
@@ -50,7 +51,8 @@ class SQLiteConversationStorage(BaseConversationStorage):
         return sessions
 
     def save(self, sessions: dict[str, list[dict[str, str]]]) -> None:
-        """Replace stored conversation data with the supplied sessions."""
+        """Validate and replace stored conversation session data."""
+        ConversationDataValidator.validate(sessions)
         with closing(sqlite3.connect(self.database_path)) as connection, connection:
             connection.execute("DELETE FROM conversation_messages")
 
