@@ -48,6 +48,7 @@ class SQLiteConversationStorage(BaseConversationStorage):
                 "content": content,
             })
 
+        ConversationDataValidator.validate(sessions)
         return sessions
 
     def save(self, sessions: dict[str, list[dict[str, str]]]) -> None:

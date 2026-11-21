@@ -105,6 +105,19 @@ class TestSQLiteConversationStorage(unittest.TestCase):
 
         self.assertEqual(self.storage.load(), original_sessions)
 
+    def test_rejects_invalid_data_when_loading(self):
+        """Verify invalid database records are rejected during loading."""
+        with sqlite3.connect(self.database_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO conversation_messages (session_id, role, content)
+                VALUES ('default', 'user', ' ')
+                """
+            )
+
+        with self.assertRaises(ValueError):
+            self.storage.load()
+
     def test_rejects_invalid_conversation_data(self):
         """Verify invalid conversation data is rejected before persistence."""
         invalid_sessions = {

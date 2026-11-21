@@ -54,6 +54,19 @@ class TestJsonConversationStorage(unittest.TestCase):
 
         self.assertEqual(self.storage.load(), {})
 
+    def test_rejects_invalid_data_when_loading(self):
+        """Verify invalid conversation structures are rejected during loading."""
+        invalid_data = {
+            "default": [{"role": "user", "content": " "}]
+        }
+        self.file_path.write_text(
+            json.dumps(invalid_data),
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValueError):
+            self.storage.load()
+
     def test_preserves_existing_data_when_temporary_write_fails(self):
         """Verify failed temporary writes do not corrupt existing data."""
         original_data = {"default": [{"role": "user", "content": "Original"}]}

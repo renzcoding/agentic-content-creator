@@ -19,7 +19,14 @@ class JsonConversationStorage(BaseConversationStorage):
             return {}
 
         try:
-            return json.loads(self.file_path.read_text(encoding="utf-8"))
+            data = json.loads(self.file_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                ConversationDataValidator.validate(data)
+            elif isinstance(data, list):
+                ConversationDataValidator.validate({"default": data})
+            else:
+                raise ValueError("Unsupported conversation data format.")
+            return data
         except (json.JSONDecodeError, OSError):
             return {}
 
