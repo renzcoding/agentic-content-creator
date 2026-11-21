@@ -169,6 +169,35 @@ class TestProductManagerAgent(unittest.TestCase):
                 session_id=" ",
             )
 
+    def test_includes_relevant_older_messages_in_prompt(self):
+        """Verify that older keyword-matching messages enter the prompt."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message(
+                "user", "We chose React for the frontend."
+            )
+            conversation.add_message(
+                "assistant", "The backend uses Laravel."
+            )
+            conversation.add_message(
+                "user", "The dashboard needs analytics."
+            )
+            conversation.add_message(
+                "assistant", "Use charts for reporting."
+            )
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=2,
+            )
+            agent.run("Continue the React frontend development")
+
+            prompt = self.provider.generate.call_args.args[0]
+            self.assertIn("React for the frontend", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

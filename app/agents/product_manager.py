@@ -42,15 +42,50 @@ class ProductManagerAgent(BaseAgent):
         # Retrieve persistent project context when configured.
         context = self.recall("project_context") if self.memory else None
 
-        # Retrieve recent conversation messages when configured.
-        history = (
+        # Retrieve all messages from the current conversation session.
+        all_messages = (
             self.conversation_memory.get_history(
-                limit=self.history_limit,
                 session_id=self.session_id,
             )
             if self.conversation_memory
             else []
         )
+
+        # Keep only the configured number of recent messages.
+        history = all_messages[-self.history_limit:]
+
+        # Search older messages using meaningful words from the current task.
+        relevant_keys = set()
+        if self.conversation_memory:
+            keywords = {
+                word.strip(".,!?;:()[]{}\"'").casefold()
+                for word in task.split()
+                if len(word.strip(".,!?;:()[]{}\"'")) >= 3
+            }
+
+            for keyword in keywords:
+                matches = self.conversation_memory.search_messages(
+                    keyword=keyword,
+                    session_id=self.session_id,
+                )
+                for message in matches:
+                    relevant_keys.add(
+                        (message["role"], message["content"])
+                    )
+
+        # Exclude recent messages and preserve the original message order.
+        recent_keys = {
+            (message["role"], message["content"])
+            for message in history
+        }
+        relevant_messages = [
+            message
+            for message in all_messages
+            if (
+                (message["role"], message["content"]) in relevant_keys
+                and (message["role"], message["content"]) not in recent_keys
+            )
+        ]
 
         history_section = ""
         if history:
@@ -64,6 +99,19 @@ class ProductManagerAgent(BaseAgent):
                 + "\n\n"
             )
 
+        relevant_section = ""
+        if relevant_messages:
+            relevant_lines = [
+                f"{message['role']}: {message['content']}"
+                for message in relevant_messages
+            ]
+            relevant_section = (
+                "Relevant Previous Conversation:\n"
+                + "\n".join(relevant_lines)
+                + "\n\n"
+            )
+
+
         context_section = (
             f"Previous Context: {context}\n\n" if context else ""
         )
@@ -72,6 +120,7 @@ class ProductManagerAgent(BaseAgent):
             "Act as a product manager. Be concise and follow the format exactly.\n"
             f"{context_section}"
             f"{history_section}"
+            f"{relevant_section}"
             f"Objective: {task.strip()}\n\n"
             "Return these four sections only:\n"
             "PRODUCT REQUIREMENTS\n"
