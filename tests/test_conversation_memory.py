@@ -69,6 +69,66 @@ class TestConversationMemory(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.memory.get_history(limit=0)
 
+    def test_searches_messages_by_keyword(self):
+        """Verify messages can be searched by keyword."""
+        self.memory.add_message("user", "Build a React dashboard.")
+        self.memory.add_message("assistant", "Use reusable React components.")
+        self.memory.add_message("user", "Configure the database.")
+
+        results = self.memory.search_messages("React")
+
+        self.assertEqual(len(results), 2)
+        self.assertIn("React", results[0]["content"])
+        self.assertIn("React", results[1]["content"])
+
+    def test_search_is_case_insensitive(self):
+        """Verify keyword search ignores letter casing."""
+        self.memory.add_message("user", "Build an AI assistant.")
+
+        results = self.memory.search_messages("ai")
+
+        self.assertEqual(len(results), 1)
+
+    def test_searches_only_selected_session(self):
+        """Verify keyword search is isolated by session."""
+        self.memory.add_message("user", "Build a React app.", "session-a")
+        self.memory.add_message("user", "Build a React dashboard.", "session-b")
+
+        results = self.memory.search_messages(
+            "React",
+            session_id="session-a",
+        )
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["content"], "Build a React app.")
+
+    def test_limits_search_results(self):
+        """Verify search limits return the newest matching messages."""
+        self.memory.add_message("user", "React project one.")
+        self.memory.add_message("user", "React project two.")
+        self.memory.add_message("user", "React project three.")
+
+        results = self.memory.search_messages("React", limit=2)
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]["content"], "React project two.")
+        self.assertEqual(results[1]["content"], "React project three.")
+
+    def test_rejects_empty_search_keyword(self):
+        """Verify empty search keywords are rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.search_messages(" ")
+
+    def test_rejects_invalid_search_limit(self):
+        """Verify non-positive search limits are rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.search_messages("React", limit=0)
+
+    def test_rejects_empty_search_session_id(self):
+        """Verify empty search session identifiers are rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.search_messages("React", session_id=" ")
+
     def test_clears_conversation_history(self):
         """Verify that all conversation messages can be deleted."""
         self.memory.add_message("user", "Hello")

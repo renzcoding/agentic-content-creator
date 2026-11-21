@@ -79,6 +79,33 @@ class ConversationMemory:
 
         return messages[-limit:] if limit is not None else messages
 
+    def search_messages(
+        self,
+        keyword: str,
+        session_id: str = "default",
+        limit: int | None = None,
+    ) -> list[dict[str, str]]:
+        """Search conversation messages by keyword within one session."""
+        if not keyword.strip():
+            raise ValueError("Search keyword must not be empty.")
+
+        if not session_id.strip():
+            raise ValueError("Session ID must not be empty.")
+
+        if limit is not None and limit < 1:
+            raise ValueError("Search limit must be greater than zero.")
+
+        messages = self._load().get(session_id.strip(), [])
+        search_term = keyword.strip().casefold()
+
+        matches = [
+            message
+            for message in messages
+            if search_term in message["content"].casefold()
+        ]
+
+        return matches[-limit:] if limit is not None else matches
+
     def clear(self, session_id: str = "default") -> None:
         """Remove conversation history from the selected session."""
         if not session_id.strip():
