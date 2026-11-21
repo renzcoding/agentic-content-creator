@@ -103,16 +103,31 @@ class TestConversationMemory(unittest.TestCase):
         self.assertEqual(results[0]["content"], "Build a React app.")
 
     def test_limits_search_results(self):
-        """Verify search limits return the newest matching messages."""
+        """Verify search limits return the highest-ranked messages."""
         self.memory.add_message("user", "React project one.")
-        self.memory.add_message("user", "React project two.")
-        self.memory.add_message("user", "React project three.")
+        self.memory.add_message(
+            "user",
+            "React frontend project two.",
+        )
+        self.memory.add_message(
+            "user",
+            "React frontend components project three.",
+        )
 
-        results = self.memory.search_messages("React", limit=2)
+        results = self.memory.search_messages(
+            ["React", "frontend", "components"],
+            limit=2,
+        )
 
         self.assertEqual(len(results), 2)
-        self.assertEqual(results[0]["content"], "React project two.")
-        self.assertEqual(results[1]["content"], "React project three.")
+        self.assertEqual(
+            results[0]["content"],
+            "React frontend components project three.",
+        )
+        self.assertEqual(
+            results[1]["content"],
+            "React frontend project two.",
+        )
 
     def test_rejects_empty_search_keyword(self):
         """Verify empty search keywords are rejected."""
@@ -260,6 +275,54 @@ class TestConversationMemory(unittest.TestCase):
 
             self.assertEqual(memory.get_history(), [])
 
+
+
+    def test_ranks_search_results_by_keyword_matches(self):
+        """Verify messages with more keyword matches rank higher."""
+        self.memory.add_message(
+            "user",
+            "React is useful for frontend development.",
+        )
+        self.memory.add_message(
+            "assistant",
+            "React frontend applications improve user experience.",
+        )
+        self.memory.add_message(
+            "user",
+            "React is a frontend library.",
+        )
+        self.memory.add_message(
+            "assistant",
+            "React frontend development uses reusable components.",
+        )
+
+        results = self.memory.search_messages(
+            ["React", "frontend", "components"]
+        )
+
+        self.assertEqual(
+            results[0]["content"],
+            "React frontend development uses reusable components.",
+        )
+
+
+    def test_preserves_order_when_relevance_scores_are_equal(self):
+        """Verify equal relevance scores preserve conversation order."""
+        self.memory.add_message("user", "React frontend project one.")
+        self.memory.add_message("assistant", "React frontend project two.")
+
+        results = self.memory.search_messages(
+            ["React", "frontend"]
+        )
+
+        self.assertEqual(
+            results[0]["content"],
+            "React frontend project one.",
+        )
+        self.assertEqual(
+            results[1]["content"],
+            "React frontend project two.",
+        )
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,30 +81,58 @@ class ConversationMemory:
 
     def search_messages(
         self,
-        keyword: str,
+        keyword: str | list[str],
         session_id: str = "default",
         limit: int | None = None,
     ) -> list[dict[str, str]]:
-        """Search conversation messages by keyword within one session."""
-        if not keyword.strip():
-            raise ValueError("Search keyword must not be empty.")
-
+        """Search and rank conversation messages by keyword relevance."""
         if not session_id.strip():
             raise ValueError("Session ID must not be empty.")
 
         if limit is not None and limit < 1:
             raise ValueError("Search limit must be greater than zero.")
 
-        messages = self._load().get(session_id.strip(), [])
-        search_term = keyword.strip().casefold()
+        # Normalize one or multiple search keywords.
+        keywords = (
+            [keyword]
+            if isinstance(keyword, str)
+            else keyword
+        )
 
-        matches = [
+        normalized_keywords = {
+            item.strip().casefold()
+            for item in keywords
+            if isinstance(item, str) and item.strip()
+        }
+
+        if not normalized_keywords:
+            raise ValueError("Search keyword must not be empty.")
+
+        # Calculate how many unique keywords match each message.
+        messages = self._load().get(session_id.strip(), [])
+        ranked_messages = []
+
+        for index, message in enumerate(messages):
+            content = message["content"].casefold()
+            score = sum(
+                1 for item in normalized_keywords
+                if item in content
+            )
+
+            if score > 0:
+                ranked_messages.append((score, index, message))
+
+        # Rank higher scores first and preserve order for equal scores.
+        ranked_messages.sort(
+            key=lambda item: (-item[0], item[1])
+        )
+
+        results = [
             message
-            for message in messages
-            if search_term in message["content"].casefold()
+            for _, _, message in ranked_messages
         ]
 
-        return matches[-limit:] if limit is not None else matches
+        return results[:limit] if limit is not None else results
 
     def clear(self, session_id: str = "default") -> None:
         """Remove conversation history from the selected session."""
