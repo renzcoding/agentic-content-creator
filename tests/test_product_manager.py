@@ -437,6 +437,51 @@ class TestProductManagerAgent(unittest.TestCase):
             self.assertIn("Objective: Build a dashboard", prompt)
             self.assertIn("PRODUCT REQUIREMENTS", prompt)
 
+    def test_preserves_original_context_lists_when_reducing_prompt(self):
+        """Verify prompt reduction preserves original context collections."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Old conversation"},
+            {"role": "assistant", "content": "Recent conversation"},
+        ]
+        relevant_messages = [
+            {"role": "user", "content": "Relevant message one"},
+            {"role": "assistant", "content": "Relevant message two"},
+        ]
+
+        original_history = history.copy()
+        original_relevant_messages = relevant_messages.copy()
+        context = "Project context " * 1000
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=300,
+        )
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            history,
+            relevant_messages,
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            context,
+            history,
+            relevant_messages,
+        )
+
+        self.assertNotIn("Previous Context:", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+        self.assertEqual(history, original_history)
+        self.assertEqual(relevant_messages, original_relevant_messages)
+
 
     def test_accepts_custom_prompt_token_budget(self):
         """Verify that a custom prompt token budget is stored."""
@@ -472,6 +517,64 @@ class TestProductManagerAgent(unittest.TestCase):
             agent.run("Build a dashboard")
 
         self.provider.generate.assert_not_called()
+
+    def test_preserves_highest_ranked_relevant_message(self):
+        """Verify prompt reduction preserves the highest-ranked relevant message."""
+        from app.utils.token_estimator import estimate_tokens
+
+        relevant_messages = [
+            {"role": "user", "content": "Highest priority React architecture"},
+            {"role": "user", "content": "Lower priority React styling"},
+        ]
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        required_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            [],
+            [],
+        )
+
+        highest_message_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            [],
+            relevant_messages[:1],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(
+            highest_message_prompt
+        )
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            [],
+            relevant_messages,
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            None,
+            [],
+            relevant_messages,
+        )
+
+        self.assertLessEqual(
+            estimate_tokens(required_prompt),
+            agent.prompt_token_budget,
+        )
+        self.assertIn("Highest priority React architecture", fitted_prompt)
+        self.assertNotIn("Lower priority React styling", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
 
 if __name__ == "__main__":
     unittest.main()
