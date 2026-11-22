@@ -35,7 +35,7 @@ class ProductManagerAgent(BaseAgent):
         self.session_id = session_id.strip()
 
     def run(self, task: str) -> str:
-        """Generate requirements using project context and recent conversation."""
+        """Generate requirements using project context and relevant conversation."""
         if not task.strip():
             raise ValueError("Task must not be empty.")
 
@@ -55,7 +55,7 @@ class ProductManagerAgent(BaseAgent):
         history = all_messages[-self.history_limit:]
 
         # Search older messages using meaningful words from the current task.
-        relevant_keys = set()
+        relevant_messages = []
         if self.conversation_memory:
             keywords = {
                 word.strip(".,!?;:()[]{}\"'").casefold()
@@ -68,25 +68,19 @@ class ProductManagerAgent(BaseAgent):
                     keyword=sorted(keywords),
                     session_id=self.session_id,
                 )
-                for message in matches:
-                    relevant_keys.add(
-                        (message["role"], message["content"])
-                    )
 
-        # Exclude recent messages and preserve the original message order.
-        recent_keys = {
-            (message["role"], message["content"])
-            for message in history
-        }
-        relevant_messages = [
-            message
-            for message in all_messages
-            if (
-                (message["role"], message["content"]) in relevant_keys
-                and (message["role"], message["content"]) not in recent_keys
-            )
-        ]
+                # Exclude recent messages while preserving relevance ranking.
+                recent_keys = {
+                    (message["role"], message["content"])
+                    for message in history
+                }
+                relevant_messages = [
+                    message
+                    for message in matches
+                    if (message["role"], message["content"]) not in recent_keys
+                ]
 
+        # Format recent conversation history for the prompt.
         history_section = ""
         if history:
             history_lines = [
@@ -99,6 +93,7 @@ class ProductManagerAgent(BaseAgent):
                 + "\n\n"
             )
 
+        # Format relevance-ranked older messages for the prompt.
         relevant_section = ""
         if relevant_messages:
             relevant_lines = [
@@ -111,11 +106,12 @@ class ProductManagerAgent(BaseAgent):
                 + "\n\n"
             )
 
-
+        # Include persistent project context when available.
         context_section = (
             f"Previous Context: {context}\n\n" if context else ""
         )
 
+        # Build the complete prompt for the language model.
         prompt = (
             "Act as a product manager. Be concise and follow the format exactly.\n"
             f"{context_section}"

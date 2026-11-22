@@ -240,5 +240,40 @@ class TestProductManagerAgent(unittest.TestCase):
             )
 
 
+    def test_prioritizes_more_relevant_messages_in_prompt(self):
+        """Verify that higher-ranked messages appear first in relevant context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message("user", "React is useful.")
+            conversation.add_message(
+                "assistant", "React frontend development uses reusable components."
+            )
+            conversation.add_message(
+                "user", "React frontend development improves the dashboard."
+            )
+            conversation.add_message(
+                "assistant", "Frontend tools are important."
+            )
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=1,
+            )
+            agent.run("Explain React frontend development")
+
+            prompt = self.provider.generate.call_args.args[0]
+            relevant_section = prompt.split(
+                "Relevant Previous Conversation:\n", 1
+            )[1].split("\n\nObjective:", 1)[0]
+
+            self.assertLess(
+                relevant_section.index("React frontend development uses"),
+                relevant_section.index("React is useful."),
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
