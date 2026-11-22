@@ -21,6 +21,7 @@ class TestProductManagerAgent(unittest.TestCase):
             "Acceptance Criteria: Users can plan content."
         )
         self.memory = Mock(spec=BaseMemory)
+        self.memory.retrieve.return_value = None
         self.agent = ProductManagerAgent(
             provider=self.provider,
             memory=self.memory,
@@ -324,6 +325,73 @@ class TestProductManagerAgent(unittest.TestCase):
             self.assertIn("topic number 4", relevant_messages[-1])
             self.assertNotIn("topic number 5", relevant_section)
             self.assertNotIn("topic number 6", relevant_section)
+
+
+
+
+    def test_limits_recent_conversation_characters(self):
+        """Verify recent conversation stays within its character budget."""
+        from config.settings import RECENT_HISTORY_CHAR_LIMIT
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message("user", "A" * 3000)
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+            )
+            agent.run("Continue the project")
+
+            prompt = self.provider.generate.call_args.args[0]
+            section = prompt.split("Recent Conversation:\n", 1)[1]
+            section = section.split("\n\nObjective:", 1)[0]
+
+            self.assertLessEqual(len(section), RECENT_HISTORY_CHAR_LIMIT)
+
+    def test_limits_relevant_context_characters(self):
+        """Verify relevant older messages stay within their character budget."""
+        from config.settings import RELEVANT_CONTEXT_CHAR_LIMIT
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message(
+                "user",
+                "React " + ("frontend development " * 200),
+            )
+            conversation.add_message("assistant", "Recent unrelated message.")
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=1,
+            )
+            agent.run("Continue React frontend development")
+
+            prompt = self.provider.generate.call_args.args[0]
+            section = prompt.split(
+                "Relevant Previous Conversation:\n", 1
+            )[1].split("\n\nObjective:", 1)[0]
+
+            self.assertLessEqual(len(section), RELEVANT_CONTEXT_CHAR_LIMIT)
+
+    def test_limits_project_context_characters(self):
+        """Verify persistent project context stays within its character budget."""
+        from config.settings import PROJECT_CONTEXT_CHAR_LIMIT
+
+        self.memory.retrieve.return_value = "P" * 3000
+        self.agent.run("Build a dashboard")
+
+        prompt = self.provider.generate.call_args.args[0]
+        section = prompt.split("Previous Context: ", 1)[1]
+        section = section.split("\n\nObjective:", 1)[0]
+
+        self.assertEqual(len(section), PROJECT_CONTEXT_CHAR_LIMIT)
+        self.assertEqual(section, "P" * PROJECT_CONTEXT_CHAR_LIMIT)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,9 @@
-from config.settings import RELEVANT_CONTEXT_LIMIT
+from config.settings import (
+    PROJECT_CONTEXT_CHAR_LIMIT,
+    RECENT_HISTORY_CHAR_LIMIT,
+    RELEVANT_CONTEXT_CHAR_LIMIT,
+    RELEVANT_CONTEXT_LIMIT,
+)
 from app.agents.base_agent import BaseAgent
 from app.memory.base_memory import BaseMemory
 from app.memory.conversation_memory import ConversationMemory
@@ -35,13 +40,43 @@ class ProductManagerAgent(BaseAgent):
             raise ValueError("Session ID must not be empty.")
         self.session_id = session_id.strip()
 
+    @staticmethod
+    def _limit_text(text: str, max_chars: int) -> str:
+        """Trim text to a character budget without exceeding the limit."""
+        return text[:max_chars]
+
+    @staticmethod
+    def _format_messages(
+        messages: list[dict[str, str]],
+        max_chars: int,
+    ) -> str:
+        """Format messages while keeping the total output within its budget."""
+        lines = []
+        remaining = max_chars
+
+        for message in messages:
+            line = f"{message['role']}: {message['content']}"
+            if remaining <= 0:
+                break
+
+            # Keep each formatted message within the remaining character budget.
+            lines.append(line[:remaining])
+            remaining -= min(len(line), remaining)
+
+        return "\n".join(lines)
+
     def run(self, task: str) -> str:
         """Generate requirements using project context and relevant conversation."""
         if not task.strip():
             raise ValueError("Task must not be empty.")
 
-        # Retrieve persistent project context when configured.
+        # Retrieve and limit persistent project context when configured.
         context = self.recall("project_context") if self.memory else None
+        if context:
+            context = self._limit_text(
+                context,
+                PROJECT_CONTEXT_CHAR_LIMIT,
+            )
 
         # Retrieve all messages from the current conversation session.
         all_messages = (
@@ -81,31 +116,27 @@ class ProductManagerAgent(BaseAgent):
                     if (message["role"], message["content"]) not in recent_keys
                 ][:RELEVANT_CONTEXT_LIMIT]
 
-        # Format recent conversation history for the prompt.
+        # Format recent conversation history within its character budget.
         history_section = ""
         if history:
-            history_lines = [
-                f"{message['role']}: {message['content']}"
-                for message in history
-            ]
-            history_section = (
-                "Recent Conversation:\n"
-                + "\n".join(history_lines)
-                + "\n\n"
+            history_text = self._format_messages(
+                history,
+                RECENT_HISTORY_CHAR_LIMIT,
             )
+            if history_text:
+                history_section = f"Recent Conversation:\n{history_text}\n\n"
 
-        # Format relevance-ranked older messages for the prompt.
+        # Format relevant older messages within their character budget.
         relevant_section = ""
         if relevant_messages:
-            relevant_lines = [
-                f"{message['role']}: {message['content']}"
-                for message in relevant_messages
-            ]
-            relevant_section = (
-                "Relevant Previous Conversation:\n"
-                + "\n".join(relevant_lines)
-                + "\n\n"
+            relevant_text = self._format_messages(
+                relevant_messages,
+                RELEVANT_CONTEXT_CHAR_LIMIT,
             )
+            if relevant_text:
+                relevant_section = (
+                    f"Relevant Previous Conversation:\n{relevant_text}\n\n"
+                )
 
         # Include persistent project context when available.
         context_section = (
