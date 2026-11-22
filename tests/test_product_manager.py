@@ -199,5 +199,46 @@ class TestProductManagerAgent(unittest.TestCase):
             self.assertIn("React for the frontend", prompt)
 
 
+    def test_searches_relevant_messages_with_multiple_keywords(self):
+        """Verify that relevant messages are searched with one keyword list."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message(
+                "user", "React frontend development is important."
+            )
+            conversation.add_message(
+                "assistant", "Use reusable React components."
+            )
+            conversation.add_message(
+                "user", "The database uses PostgreSQL."
+            )
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=1,
+            )
+
+            original_search = conversation.search_messages
+            search_calls = []
+
+            def track_search(keyword, session_id="default", limit=None):
+                search_calls.append(keyword)
+                return original_search(keyword, session_id, limit)
+
+            conversation.search_messages = Mock(side_effect=track_search)
+
+            agent.run("Continue React frontend development")
+
+            self.assertEqual(len(search_calls), 1)
+            self.assertIsInstance(search_calls[0], list)
+            self.assertEqual(
+                set(search_calls[0]),
+                {"continue", "react", "frontend", "development"},
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

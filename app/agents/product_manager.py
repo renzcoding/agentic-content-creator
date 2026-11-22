@@ -63,9 +63,9 @@ class ProductManagerAgent(BaseAgent):
                 if len(word.strip(".,!?;:()[]{}\"'")) >= 3
             }
 
-            for keyword in keywords:
+            if keywords:
                 matches = self.conversation_memory.search_messages(
-                    keyword=keyword,
+                    keyword=sorted(keywords),
                     session_id=self.session_id,
                 )
                 for message in matches:
