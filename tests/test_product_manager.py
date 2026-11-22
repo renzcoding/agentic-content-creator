@@ -483,6 +483,146 @@ class TestProductManagerAgent(unittest.TestCase):
         self.assertEqual(relevant_messages, original_relevant_messages)
 
 
+    def test_reduces_relevant_messages_before_history_and_project_context(self):
+        """Verify relevant messages are removed before other optional context."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Keep this recent history"},
+        ]
+        relevant_messages = [
+            {"role": "user", "content": "Remove this lower priority message"},
+        ]
+        context = "Keep this project context"
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        prompt_without_relevant = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            history,
+            [],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(prompt_without_relevant)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            history,
+            relevant_messages,
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            context,
+            history,
+            relevant_messages,
+        )
+
+        self.assertNotIn("Remove this lower priority message", fitted_prompt)
+        self.assertIn("Keep this recent history", fitted_prompt)
+        self.assertIn("Keep this project context", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
+    def test_reduces_history_before_project_context(self):
+        """Verify old conversation history is removed before project context."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Remove this old conversation"},
+        ]
+        context = "Preserve this project context"
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        expected_prompt = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            [],
+            [],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(expected_prompt)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            history,
+            [],
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            context,
+            history,
+            [],
+        )
+
+        self.assertNotIn("Remove this old conversation", fitted_prompt)
+        self.assertIn("Preserve this project context", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
+    def test_removes_project_context_after_history(self):
+        """Verify project context is removed only after history is exhausted."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Remove this old conversation"},
+        ]
+        context = "Remove this project context"
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        required_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            [],
+            [],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(required_prompt)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            context,
+            history,
+            [],
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            context,
+            history,
+            [],
+        )
+
+        self.assertNotIn("Remove this old conversation", fitted_prompt)
+        self.assertNotIn("Remove this project context", fitted_prompt)
+        self.assertIn("Objective: Build a dashboard", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
     def test_accepts_custom_prompt_token_budget(self):
         """Verify that a custom prompt token budget is stored."""
         agent = ProductManagerAgent(
