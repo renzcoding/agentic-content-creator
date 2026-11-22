@@ -5,3 +5,6 @@ OLLAMA_MODEL = "qwen2.5:0.5b"
 CONVERSATION_STORAGE_BACKEND = "json"
 CONVERSATION_JSON_PATH = "outputs/conversations.json"
 CONVERSATION_SQLITE_PATH = "outputs/conversations.db"
+
+# Maximum number of relevance-ranked older messages included in LLM prompts.
+RELEVANT_CONTEXT_LIMIT = 5

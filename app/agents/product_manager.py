@@ -1,3 +1,4 @@
+from config.settings import RELEVANT_CONTEXT_LIMIT
 from app.agents.base_agent import BaseAgent
 from app.memory.base_memory import BaseMemory
 from app.memory.conversation_memory import ConversationMemory
@@ -78,7 +79,7 @@ class ProductManagerAgent(BaseAgent):
                     message
                     for message in matches
                     if (message["role"], message["content"]) not in recent_keys
-                ]
+                ][:RELEVANT_CONTEXT_LIMIT]
 
         # Format recent conversation history for the prompt.
         history_section = ""

@@ -275,5 +275,56 @@ class TestProductManagerAgent(unittest.TestCase):
             )
 
 
+
+    def test_limits_relevant_context_messages(self):
+        """Verify that only the five highest-ranked messages enter the prompt."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+
+            # Add messages with progressively lower relevance scores.
+            messages = [
+                "React frontend development Explain topic number 0.",
+                "React frontend development topic number 1.",
+                "React frontend topic number 2.",
+                "React frontend topic number 3.",
+                "React topic number 4.",
+                "Frontend topic number 5.",
+                "Development topic number 6.",
+            ]
+            for message in messages:
+                conversation.add_message("user", message)
+
+            # Keep the latest message in the separate recent history section.
+            conversation.add_message(
+                "assistant",
+                "Recent unrelated discussion.",
+            )
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                history_limit=1,
+            )
+            agent.run("Explain React frontend development")
+
+            prompt = self.provider.generate.call_args.args[0]
+            relevant_section = prompt.split(
+                "Relevant Previous Conversation:", 1
+            )[1].split("Objective:", 1)[0]
+
+            relevant_messages = [
+                line for line in relevant_section.splitlines()
+                if line.startswith("user:") or line.startswith("assistant:")
+            ]
+
+            self.assertEqual(len(relevant_messages), 5)
+            self.assertIn("topic number 0", relevant_messages[0])
+            self.assertIn("topic number 4", relevant_messages[-1])
+            self.assertNotIn("topic number 5", relevant_section)
+            self.assertNotIn("topic number 6", relevant_section)
+
+
 if __name__ == "__main__":
     unittest.main()
