@@ -408,6 +408,70 @@ class TestProductManagerAgent(unittest.TestCase):
         )
         self.assertGreater(self.agent.last_prompt_token_estimate, 0)
 
+    def test_keeps_prompt_within_token_budget(self):
+        """Verify oversized context is reduced to fit the configured token budget."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            conversation.add_message(
+                "user", "React " + ("frontend " * 3000)
+            )
+            conversation.add_message(
+                "assistant", "Recent " + ("history " * 3000)
+            )
+
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+                prompt_token_budget=300,
+            )
+            agent.run("Build a dashboard")
+
+            prompt = self.provider.generate.call_args.args[0]
+
+            self.assertLessEqual(
+                agent.last_prompt_token_estimate,
+                agent.prompt_token_budget,
+            )
+            self.assertIn("Objective: Build a dashboard", prompt)
+            self.assertIn("PRODUCT REQUIREMENTS", prompt)
+
+
+    def test_accepts_custom_prompt_token_budget(self):
+        """Verify that a custom prompt token budget is stored."""
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=300,
+        )
+
+        self.assertEqual(agent.prompt_token_budget, 300)
+
+    def test_rejects_invalid_prompt_token_budget(self):
+        """Verify that non-positive prompt token budgets are rejected."""
+        for budget in (0, -1):
+            with self.subTest(budget=budget):
+                with self.assertRaises(ValueError):
+                    ProductManagerAgent(
+                        provider=self.provider,
+                        prompt_token_budget=budget,
+                    )
+
+
+    def test_rejects_budget_smaller_than_required_prompt(self):
+        """Verify required prompt content cannot exceed the token budget."""
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=20,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Required prompt content exceeds the token budget.",
+        ):
+            agent.run("Build a dashboard")
+
+        self.provider.generate.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
