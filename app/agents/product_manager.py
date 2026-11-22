@@ -9,6 +9,7 @@ from app.memory.base_memory import BaseMemory
 from app.memory.conversation_memory import ConversationMemory
 from app.services.llm.base_provider import BaseLLMProvider
 from app.services.llm.ollama_provider import OllamaProvider
+from app.utils.token_estimator import estimate_tokens
 
 
 class ProductManagerAgent(BaseAgent):
@@ -39,6 +40,7 @@ class ProductManagerAgent(BaseAgent):
         if not session_id.strip():
             raise ValueError("Session ID must not be empty.")
         self.session_id = session_id.strip()
+        self.last_prompt_token_estimate = 0
 
     @staticmethod
     def _limit_text(text: str, max_chars: int) -> str:
@@ -158,6 +160,9 @@ class ProductManagerAgent(BaseAgent):
             "Acceptance Criteria: Three numbered, testable criteria.\n"
             "Do not repeat headings. Do not end mid-sentence."
         )
+
+        # Estimate prompt tokens before sending the request to the provider.
+        self.last_prompt_token_estimate = estimate_tokens(prompt)
 
         # Generate the response before updating conversation history.
         response = self.provider.generate(prompt)

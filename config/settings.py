@@ -13,3 +13,9 @@ RELEVANT_CONTEXT_LIMIT = 5
 RELEVANT_CONTEXT_CHAR_LIMIT = 2000
 RECENT_HISTORY_CHAR_LIMIT = 2000
 PROJECT_CONTEXT_CHAR_LIMIT = 1000
+
+# Approximate maximum token budget for LLM prompts.
+PROMPT_TOKEN_BUDGET = 2048
+
+# Approximate number of characters represented by one token.
+CHARS_PER_TOKEN_ESTIMATE = 4

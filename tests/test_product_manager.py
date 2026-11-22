@@ -394,5 +394,20 @@ class TestProductManagerAgent(unittest.TestCase):
         self.assertEqual(section, "P" * PROJECT_CONTEXT_CHAR_LIMIT)
 
 
+    def test_estimates_prompt_tokens_before_generation(self):
+        """Verify prompt token estimates match the generated prompt."""
+        from app.utils.token_estimator import estimate_tokens
+
+        self.agent.run("Build a dashboard")
+
+        prompt = self.provider.generate.call_args.args[0]
+
+        self.assertEqual(
+            self.agent.last_prompt_token_estimate,
+            estimate_tokens(prompt),
+        )
+        self.assertGreater(self.agent.last_prompt_token_estimate, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
