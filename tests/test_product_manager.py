@@ -623,6 +623,97 @@ class TestProductManagerAgent(unittest.TestCase):
             agent.prompt_token_budget,
         )
 
+    def test_preserves_newest_history_when_reducing_prompt(self):
+        """Verify prompt reduction removes older history before newer history."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Old conversation about legacy systems"},
+            {"role": "assistant", "content": "Recent conversation about React architecture"},
+        ]
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        newest_history_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history[1:],
+            [],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(newest_history_prompt)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        self.assertNotIn("Old conversation about legacy systems", fitted_prompt)
+        self.assertIn("Recent conversation about React architecture", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
+    def test_preserves_original_history_when_reducing_prompt(self):
+        """Verify history reduction does not mutate the original history list."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Old conversation about legacy systems"},
+            {"role": "assistant", "content": "Recent conversation about React"},
+        ]
+        original_history = history.copy()
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        newest_history_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history[1:],
+            [],
+        )
+        agent.prompt_token_budget = estimate_tokens(newest_history_prompt)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        self.assertNotIn("Old conversation about legacy systems", fitted_prompt)
+        self.assertIn("Recent conversation about React", fitted_prompt)
+        self.assertEqual(history, original_history)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
     def test_accepts_custom_prompt_token_budget(self):
         """Verify that a custom prompt token budget is stored."""
         agent = ProductManagerAgent(
