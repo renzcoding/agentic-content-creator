@@ -329,6 +329,42 @@ class TestProductManagerAgent(unittest.TestCase):
 
 
 
+    def test_format_messages_counts_newline_characters(self):
+        """Verify newline separators are included in the character budget."""
+        messages = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "World"},
+        ]
+
+        result = ProductManagerAgent._format_messages(messages, 27)
+
+        self.assertEqual(result, "user: Hello\nassistant: Worl")
+        self.assertEqual(len(result), 27)
+
+
+    def test_format_messages_never_exceeds_character_budget(self):
+        """Verify formatted messages never exceed the character budget."""
+        messages = [
+            {"role": "user", "content": "A" * 20},
+            {"role": "assistant", "content": "B" * 20},
+            {"role": "user", "content": "C" * 20},
+        ]
+
+        result = ProductManagerAgent._format_messages(messages, 30)
+
+        self.assertLessEqual(len(result), 30)
+
+    def test_format_messages_returns_empty_for_zero_budget(self):
+        """Verify zero character budget produces an empty result."""
+        messages = [
+            {"role": "user", "content": "Hello"},
+        ]
+
+        result = ProductManagerAgent._format_messages(messages, 0)
+
+        self.assertEqual(result, "")
+
+
     def test_limits_recent_conversation_characters(self):
         """Verify recent conversation stays within its character budget."""
         from config.settings import RECENT_HISTORY_CHAR_LIMIT

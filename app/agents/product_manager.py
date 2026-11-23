@@ -52,25 +52,35 @@ class ProductManagerAgent(BaseAgent):
         """Trim text to a character budget without exceeding the limit."""
         return text[:max_chars]
 
+
     @staticmethod
     def _format_messages(
         messages: list[dict[str, str]],
         max_chars: int,
     ) -> str:
         """Format messages while keeping the total output within its budget."""
+        if max_chars <= 0:
+            return ""
+
         lines = []
         remaining = max_chars
 
         for message in messages:
             line = f"{message['role']}: {message['content']}"
-            if remaining <= 0:
+            separator = 1 if lines else 0
+            available = remaining - separator
+
+            if available <= 0:
                 break
 
-            # Keep each formatted message within the remaining character budget.
-            lines.append(line[:remaining])
-            remaining -= min(len(line), remaining)
+            lines.append(line[:available])
+            remaining -= separator + min(len(line), available)
+
+            if len(line) > available:
+                break
 
         return "\n".join(lines)
+
 
     def _fit_prompt_to_budget(
         self,
