@@ -19,6 +19,18 @@ class TestTokenEstimator(unittest.TestCase):
         """Verify partial token estimates are rounded up."""
         self.assertEqual(estimate_tokens("abcde"), 2)
 
+    def test_estimates_one_character_ratio(self):
+        """Verify one complete character ratio produces one token."""
+        self.assertEqual(estimate_tokens("a" * 4), 1)
+
+    def test_estimates_two_character_ratios(self):
+        """Verify two complete character ratios produce two tokens."""
+        self.assertEqual(estimate_tokens("a" * 8), 2)
+
+    def test_rounds_up_one_character_above_two_ratios(self):
+        """Verify one extra character above two ratios rounds up."""
+        self.assertEqual(estimate_tokens("a" * 9), 3)
+
     def test_rejects_non_string_input(self):
         """Verify non-string input raises a type error."""
         with self.assertRaises(TypeError):
