@@ -8,6 +8,10 @@ def estimate_tokens(text: str) -> int:
     if not isinstance(text, str):
         raise TypeError("Text must be a string.")
 
+    # Reject invalid character ratios before performing calculations.
+    if CHARS_PER_TOKEN_ESTIMATE < 1:
+        raise ValueError("Character-to-token ratio must be greater than zero.")
+
     # Return zero when the input contains no characters.
     if not text:
         return 0
