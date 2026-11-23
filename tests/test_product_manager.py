@@ -714,6 +714,53 @@ class TestProductManagerAgent(unittest.TestCase):
             agent.prompt_token_budget,
         )
 
+    def test_removes_history_in_oldest_first_order(self):
+        """Verify the oldest history message is removed before newer messages."""
+        from app.utils.token_estimator import estimate_tokens
+
+        history = [
+            {"role": "user", "content": "Oldest conversation about Python"},
+            {"role": "assistant", "content": "Middle conversation about Laravel"},
+            {"role": "user", "content": "Newest conversation about React"},
+        ]
+
+        agent = ProductManagerAgent(
+            provider=self.provider,
+            prompt_token_budget=2048,
+        )
+
+        retained_history_prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history[1:],
+            [],
+        )
+
+        agent.prompt_token_budget = estimate_tokens(retained_history_prompt)
+
+        prompt = agent._build_prompt(
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        fitted_prompt = agent._fit_prompt_to_budget(
+            prompt,
+            "Build a dashboard",
+            None,
+            history,
+            [],
+        )
+
+        self.assertNotIn("Oldest conversation about Python", fitted_prompt)
+        self.assertIn("Middle conversation about Laravel", fitted_prompt)
+        self.assertIn("Newest conversation about React", fitted_prompt)
+        self.assertLessEqual(
+            estimate_tokens(fitted_prompt),
+            agent.prompt_token_budget,
+        )
+
     def test_accepts_custom_prompt_token_budget(self):
         """Verify that a custom prompt token budget is stored."""
         agent = ProductManagerAgent(
