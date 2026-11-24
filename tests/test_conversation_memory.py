@@ -81,6 +81,25 @@ class TestConversationMemory(unittest.TestCase):
         self.assertIn("React", results[0]["content"])
         self.assertIn("React", results[1]["content"])
 
+    def test_does_not_match_partial_words(self):
+        """Verify keyword search matches whole words, not substrings."""
+        self.memory.add_message("user", "The partial result is incomplete.")
+
+        results = self.memory.search_messages("art")
+
+        self.assertEqual(results, [])
+
+    def test_matches_keywords_with_punctuation_boundaries(self):
+        """Verify punctuation separates searchable whole words."""
+        self.memory.add_message(
+            "user",
+            "Build a React.js app with (Python), and React components.",
+        )
+
+        results = self.memory.search_messages("React")
+
+        self.assertEqual(len(results), 1)
+
     def test_search_is_case_insensitive(self):
         """Verify keyword search ignores letter casing."""
         self.memory.add_message("user", "Build an AI assistant.")

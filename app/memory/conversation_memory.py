@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from app.memory.base_conversation_storage import BaseConversationStorage
@@ -115,8 +116,12 @@ class ConversationMemory:
         for index, message in enumerate(messages):
             content = message["content"].casefold()
             score = sum(
-                1 for item in normalized_keywords
-                if item in content
+                1
+                for item in normalized_keywords
+                if re.search(
+                    rf"\b{re.escape(item)}\b",
+                    content,
+                )
             )
 
             if score > 0:
