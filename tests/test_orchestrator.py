@@ -35,12 +35,12 @@ class TestAgentOrchestrator(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.orchestrator.register_agent(self.agent)
 
-    def test_rejects_empty_agent_name(self):
-        """Verify that agents with empty names cannot be registered."""
-        agent = StubAgent(" ", "Testing")
-
+    def test_rejects_agent_with_empty_name_before_registration(self):
+        """Verify that invalid agent identity is rejected during initialization."""
         with self.assertRaises(ValueError):
-            self.orchestrator.register_agent(agent)
+            StubAgent(" ", "Testing")
+
+        self.assertEqual(self.orchestrator.agents, {})
 
     def test_executes_registered_agent(self):
         """Verify that tasks are delegated to the correct agent."""
