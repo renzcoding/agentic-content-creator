@@ -7,7 +7,10 @@ class AgentOrchestrator:
 
     def __init__(self, registry: AgentRegistry | None = None) -> None:
         """Initialize the Orchestrator with an AgentRegistry."""
-        self.registry = registry or AgentRegistry()
+        if registry is not None and not isinstance(registry, AgentRegistry):
+            raise TypeError("Registry must be an AgentRegistry instance.")
+
+        self.registry = registry if registry is not None else AgentRegistry()
 
     @property
     def agents(self) -> dict[str, BaseAgent]:
@@ -43,10 +46,19 @@ class AgentOrchestrator:
 
     def execute(self, agent_name: str, task: str) -> str:
         """Find an Agent through the registry and execute its task."""
+        if not isinstance(agent_name, str):
+            raise TypeError("Agent name must be a string.")
+
+        if not isinstance(task, str):
+            raise TypeError("Task must be a string.")
+
         normalized_name = agent_name.strip()
 
         if not normalized_name:
             raise ValueError("Agent name must not be empty.")
+
+        if not task.strip():
+            raise ValueError("Task must not be empty.")
 
         agent = self.registry.get_by_name(normalized_name)
 

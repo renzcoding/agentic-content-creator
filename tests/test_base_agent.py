@@ -127,5 +127,63 @@ class TestBaseAgent(unittest.TestCase):
             agent.recall("topic")
 
 
+    def test_rejects_non_string_agent_name(self):
+        """Verify agent names must be strings."""
+        with self.assertRaises(ValueError):
+            ExampleAgent(123, "Testing")
+
+    def test_rejects_non_string_agent_role(self):
+        """Verify agent roles must be strings."""
+        with self.assertRaises(ValueError):
+            ExampleAgent("Example", 123)
+
+    def test_rejects_invalid_memory_dependency(self):
+        """Verify memory dependencies must implement BaseMemory."""
+        with self.assertRaises(TypeError):
+            ExampleAgent("Example", "Testing", memory=object())
+
+    def test_rejects_non_string_formal_name(self):
+        """Verify formal names must be strings or None."""
+        with self.assertRaises(TypeError):
+            ExampleAgent("Example", "Testing", formal_name=123)
+
+    def test_rejects_empty_formal_name(self):
+        """Verify empty formal names are rejected."""
+        with self.assertRaises(ValueError):
+            ExampleAgent("Example", "Testing", formal_name="   ")
+
+    def test_rejects_non_string_division_id(self):
+        """Verify division identifiers must be strings or None."""
+        with self.assertRaises(TypeError):
+            ExampleAgent("Example", "Testing", division_id=123)
+
+    def test_rejects_empty_division_id(self):
+        """Verify empty division identifiers are rejected."""
+        with self.assertRaises(ValueError):
+            ExampleAgent("Example", "Testing", division_id="   ")
+
+    def test_rejects_invalid_manager_agent_id(self):
+        """Verify manager identifiers must contain valid UUID values."""
+        with self.assertRaises(ValueError):
+            ExampleAgent("Example", "Testing", manager_agent_id="invalid-uuid")
+
+    def test_rejects_non_string_manager_agent_id(self):
+        """Verify manager identifiers must be strings or None."""
+        with self.assertRaises(TypeError):
+            ExampleAgent("Example", "Testing", manager_agent_id=123)
+
+    def test_normalizes_optional_metadata(self):
+        """Verify optional metadata is stripped of surrounding whitespace."""
+        agent = ExampleAgent(
+            "Example",
+            "Testing",
+            formal_name=" Example Specialist ",
+            division_id=" engineering_technology ",
+        )
+
+        self.assertEqual(agent.formal_name, "Example Specialist")
+        self.assertEqual(agent.division_id, "engineering_technology")
+
+
 if __name__ == "__main__":
     unittest.main()

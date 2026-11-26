@@ -32,16 +32,31 @@ class ProductManagerAgent(BaseAgent):
             memory=memory,
         )
 
+        # Validate numeric configuration types before comparing their values.
+        if isinstance(history_limit, bool) or not isinstance(history_limit, int):
+            raise TypeError("History limit must be an integer.")
         if history_limit < 1:
             raise ValueError("History limit must be greater than zero.")
+
+        # Ensure injected providers follow the shared LLM provider contract.
+        if provider is not None and not isinstance(provider, BaseLLMProvider):
+            raise TypeError("Provider must implement BaseLLMProvider.")
 
         self.provider = provider if provider is not None else OllamaProvider()
         self.conversation_memory = conversation_memory
         self.history_limit = history_limit
 
+        # Validate session identifiers before normalizing whitespace.
+        if not isinstance(session_id, str):
+            raise TypeError("Session ID must be a string.")
         if not session_id.strip():
             raise ValueError("Session ID must not be empty.")
         self.session_id = session_id.strip()
+
+        if isinstance(prompt_token_budget, bool) or not isinstance(
+            prompt_token_budget, int
+        ):
+            raise TypeError("Prompt token budget must be an integer.")
         if prompt_token_budget < 1:
             raise ValueError("Prompt token budget must be greater than zero.")
         self.prompt_token_budget = prompt_token_budget
@@ -174,8 +189,9 @@ class ProductManagerAgent(BaseAgent):
 
     def run(self, task: str) -> str:
         """Generate requirements using project context and relevant conversation."""
-        if not task.strip():
-            raise ValueError("Task must not be empty.")
+        # Validate task type and content before processing.
+        if not isinstance(task, str) or not task.strip():
+            raise ValueError("Task must be a non-empty string.")
 
         # Retrieve persistent project context when configured.
         context = self.recall("project_context") if self.memory else None
@@ -244,6 +260,14 @@ class ProductManagerAgent(BaseAgent):
 
         # Generate the response before updating conversation history.
         response = self.provider.generate(prompt)
+
+        # Validate provider output before updating conversation history.
+        if not isinstance(response, str) or not response.strip():
+            raise RuntimeError(
+                "LLM provider must return a non-empty string."
+            )
+
+        response = response.strip()
 
         # Persist the current user request and assistant response.
         if self.conversation_memory:

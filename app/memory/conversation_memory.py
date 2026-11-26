@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.conversation_data_validator import ConversationDataValidator
 from app.memory.conversation_storage_factory import create_conversation_storage
 from config import settings
 
@@ -15,6 +16,19 @@ class ConversationMemory:
         storage: BaseConversationStorage | None = None,
     ) -> None:
         """Initialize conversation memory with an injectable storage backend."""
+
+        # Validate the optional storage path before creating a backend.
+        if file_path is not None:
+            if not isinstance(file_path, str):
+                raise TypeError("File path must be a string or None.")
+
+            if not file_path.strip():
+                raise ValueError("File path must not be empty.")
+
+        # Validate injected storage against the shared storage contract.
+        if storage is not None and not isinstance(storage, BaseConversationStorage):
+            raise TypeError("Storage must implement BaseConversationStorage.")
+
         self.storage = (
             storage
             if storage is not None
@@ -26,17 +40,50 @@ class ConversationMemory:
             Path(file_path or settings.CONVERSATION_JSON_PATH),
         )
 
+    @staticmethod
+    def _validate_non_empty_string(value: str, field_name: str) -> str:
+        """Validate a required string and return its normalized value."""
+        if not isinstance(value, str):
+            raise TypeError(f"{field_name} must be a string.")
+
+        if not value.strip():
+            raise ValueError(f"{field_name} must not be empty.")
+
+        return value.strip()
+
+    @staticmethod
+    def _validate_limit(limit: int | None, field_name: str) -> None:
+        """Ensure an optional result limit is a positive integer."""
+        if limit is None:
+            return
+
+        if not isinstance(limit, int) or isinstance(limit, bool):
+            raise TypeError(f"{field_name} must be an integer or None.")
+
+        if limit < 1:
+            raise ValueError(f"{field_name} must be greater than zero.")
+
+
     def _load(self) -> dict[str, list[dict[str, str]]]:
-        """Load sessions and migrate legacy conversation data when needed."""
+        """Load and validate sessions while migrating legacy conversation data."""
         data = self.storage.load()
 
         # Migrate legacy list-based history into the default session.
         if isinstance(data, list):
             sessions = {"default": data}
+            ConversationDataValidator.validate(sessions)
             self.storage.save(sessions)
             return sessions
 
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            raise ValueError(
+                "Conversation storage must return a dictionary or legacy list."
+            )
+
+        # Validate data returned by every storage implementation.
+        ConversationDataValidator.validate(data)
+
+        return data
 
     def add_message(
         self,
@@ -45,14 +92,9 @@ class ConversationMemory:
         session_id: str = "default",
     ) -> None:
         """Append a validated message to the selected session."""
-        if not role.strip():
-            raise ValueError("Message role must not be empty.")
-
-        if not content.strip():
-            raise ValueError("Message content must not be empty.")
-
-        if not session_id.strip():
-            raise ValueError("Session ID must not be empty.")
+        role = self._validate_non_empty_string(role, "Message role")
+        content = self._validate_non_empty_string(content, "Message content")
+        session_id = self._validate_non_empty_string(session_id, "Session ID")
 
         sessions = self._load()
         messages = sessions.setdefault(session_id.strip(), [])
@@ -70,11 +112,8 @@ class ConversationMemory:
         session_id: str = "default",
     ) -> list[dict[str, str]]:
         """Retrieve conversation history from the selected session."""
-        if not session_id.strip():
-            raise ValueError("Session ID must not be empty.")
-
-        if limit is not None and limit < 1:
-            raise ValueError("History limit must be greater than zero.")
+        session_id = self._validate_non_empty_string(session_id, "Session ID")
+        self._validate_limit(limit, "History limit")
 
         messages = self._load().get(session_id.strip(), [])
 
@@ -87,23 +126,21 @@ class ConversationMemory:
         limit: int | None = None,
     ) -> list[dict[str, str]]:
         """Search and rank conversation messages by keyword relevance."""
-        if not session_id.strip():
-            raise ValueError("Session ID must not be empty.")
+        session_id = self._validate_non_empty_string(session_id, "Session ID")
+        self._validate_limit(limit, "Search limit")
 
-        if limit is not None and limit < 1:
-            raise ValueError("Search limit must be greater than zero.")
+        # Ensure search keywords use the supported input structure.
+        if isinstance(keyword, str):
+            keywords = [keyword]
+        elif isinstance(keyword, list):
+            keywords = keyword
+        else:
+            raise TypeError("Search keyword must be a string or list of strings.")
 
-        # Normalize one or multiple search keywords.
-        keywords = (
-            [keyword]
-            if isinstance(keyword, str)
-            else keyword
-        )
-
+        # Validate every keyword before performing the search.
         normalized_keywords = {
-            item.strip().casefold()
+            self._validate_non_empty_string(item, "Search keyword").casefold()
             for item in keywords
-            if isinstance(item, str) and item.strip()
         }
 
         if not normalized_keywords:
@@ -141,8 +178,7 @@ class ConversationMemory:
 
     def clear(self, session_id: str = "default") -> None:
         """Remove conversation history from the selected session."""
-        if not session_id.strip():
-            raise ValueError("Session ID must not be empty.")
+        session_id = self._validate_non_empty_string(session_id, "Session ID")
 
         sessions = self._load()
         sessions.pop(session_id.strip(), None)

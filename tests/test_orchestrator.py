@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from app.agents.product_manager import ProductManagerAgent
 from app.agents.base_agent import BaseAgent
 from app.agents.orchestrator import AgentOrchestrator
+from app.services.llm.base_provider import BaseLLMProvider
 
 
 class StubAgent(BaseAgent):
@@ -59,7 +60,7 @@ class TestAgentOrchestrator(unittest.TestCase):
         """Verify that the orchestrator executes a real agent with a mocked provider."""
 
         # Create a mock provider to avoid calling the Ollama API.
-        mock_provider = Mock()
+        mock_provider = Mock(spec=BaseLLMProvider)
         mock_provider.generate.return_value = "Product requirements generated."
 
         # Initialize and register the product manager agent.
@@ -99,6 +100,32 @@ class TestAgentOrchestrator(unittest.TestCase):
         """Verify that an empty registry returns an empty list."""
         self.assertEqual(self.orchestrator.list_agents(), [])
 
+
+
+    def test_rejects_invalid_injected_registry(self):
+        """Verify that the Orchestrator requires an AgentRegistry."""
+        with self.assertRaises(TypeError):
+            AgentOrchestrator(registry=object())
+
+    def test_rejects_non_string_agent_name(self):
+        """Verify that task execution rejects non-string Agent names."""
+        with self.assertRaises(TypeError):
+            self.orchestrator.execute(None, "Run task")
+
+    def test_rejects_empty_agent_name(self):
+        """Verify that task execution rejects empty Agent names."""
+        with self.assertRaises(ValueError):
+            self.orchestrator.execute(" ", "Run task")
+
+    def test_rejects_non_string_task(self):
+        """Verify that task execution rejects non-string tasks."""
+        with self.assertRaises(TypeError):
+            self.orchestrator.execute("Test Agent", None)
+
+    def test_rejects_empty_task(self):
+        """Verify that task execution rejects empty tasks."""
+        with self.assertRaises(ValueError):
+            self.orchestrator.execute("Test Agent", " ")
 
 
 if __name__ == "__main__":

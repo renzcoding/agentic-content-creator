@@ -7,6 +7,7 @@ from app.agents.product_manager import ProductManagerAgent
 from app.memory.base_memory import BaseMemory
 from app.memory.conversation_memory import ConversationMemory
 from app.services.llm.base_provider import BaseLLMProvider
+from app.services.llm.ollama_provider import OllamaProvider
 
 
 class TestProductManagerAgent(unittest.TestCase):
@@ -169,6 +170,26 @@ class TestProductManagerAgent(unittest.TestCase):
                 provider=self.provider,
                 session_id=" ",
             )
+
+    def test_rejects_invalid_session_id_types(self):
+        """Verify session identifiers must be strings."""
+        for session_id in (None, 123, True):
+            with self.subTest(session_id=session_id):
+                with self.assertRaises(TypeError):
+                    ProductManagerAgent(
+                        provider=self.provider,
+                        session_id=session_id,
+                    )
+
+    def test_rejects_invalid_history_limit_types(self):
+        """Verify history limits must be integers."""
+        for history_limit in (True, 1.5, "5"):
+            with self.subTest(history_limit=history_limit):
+                with self.assertRaises(TypeError):
+                    ProductManagerAgent(
+                        provider=self.provider,
+                        history_limit=history_limit,
+                    )
 
     def test_includes_relevant_older_messages_in_prompt(self):
         """Verify that older keyword-matching messages enter the prompt."""
@@ -817,6 +838,16 @@ class TestProductManagerAgent(unittest.TestCase):
                     )
 
 
+    def test_rejects_invalid_prompt_token_budget_types(self):
+        """Verify prompt token budgets must be integers."""
+        for budget in (True, 1.5, "300"):
+            with self.subTest(budget=budget):
+                with self.assertRaises(TypeError):
+                    ProductManagerAgent(
+                        provider=self.provider,
+                        prompt_token_budget=budget,
+                    )
+
     def test_rejects_budget_smaller_than_required_prompt(self):
         """Verify required prompt content cannot exceed the token budget."""
         agent = ProductManagerAgent(
@@ -889,6 +920,56 @@ class TestProductManagerAgent(unittest.TestCase):
             estimate_tokens(fitted_prompt),
             agent.prompt_token_budget,
         )
+
+
+    def test_rejects_invalid_provider(self):
+        """Reject dependencies that do not implement the provider contract."""
+        with self.assertRaisesRegex(TypeError, "BaseLLMProvider"):
+            ProductManagerAgent(provider=object())
+
+    def test_rejects_non_string_task(self):
+        """Reject tasks that are not strings."""
+        with self.assertRaises(ValueError):
+            self.agent.run(None)
+
+        self.provider.generate.assert_not_called()
+
+    def test_rejects_empty_provider_response(self):
+        """Reject empty provider output without persisting conversation data."""
+        self.provider.generate.return_value = "   "
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "non-empty string"):
+                agent.run("Build a dashboard")
+
+            self.assertEqual(conversation.get_history(), [])
+
+    def test_rejects_non_string_provider_response(self):
+        """Reject non-string provider output before persistence."""
+        self.provider.generate.return_value = None
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            conversation = ConversationMemory(
+                str(Path(temp_dir) / "conversations.json")
+            )
+            agent = ProductManagerAgent(
+                provider=self.provider,
+                conversation_memory=conversation,
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "non-empty string"):
+                agent.run("Build a dashboard")
+
+            self.assertEqual(conversation.get_history(), [])
+
 
 if __name__ == "__main__":
     unittest.main()

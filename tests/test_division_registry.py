@@ -83,5 +83,31 @@ class TestDivisionRegistry(unittest.TestCase):
             self.registry.validate_agent_references(set())
 
 
+    def test_rejects_non_string_division_id_lookup(self):
+        """Verify that Division lookup rejects non-string identifiers."""
+        with self.assertRaises(TypeError):
+            self.registry.get(None)
+
+    def test_rejects_empty_division_id_lookup(self):
+        """Verify that Division lookup rejects empty identifiers."""
+        with self.assertRaises(ValueError):
+            self.registry.get(" ")
+
+    def test_rejects_non_set_agent_references(self):
+        """Verify that Agent references must be provided as a set."""
+        with self.assertRaises(TypeError):
+            self.registry.validate_agent_references([])
+
+    def test_rejects_non_string_agent_reference(self):
+        """Verify that Agent reference sets reject non-string values."""
+        with self.assertRaises(TypeError):
+            self.registry.validate_agent_references({123})
+
+    def test_rejects_empty_agent_reference(self):
+        """Verify that Agent reference sets reject empty strings."""
+        with self.assertRaises(ValueError):
+            self.registry.validate_agent_references({" "})
+
+
 if __name__ == "__main__":
     unittest.main()

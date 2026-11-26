@@ -87,5 +87,33 @@ class TestConversationStorageFactory(unittest.TestCase):
                 self.assertEqual(memory.storage.database_path, Path(database_path))
 
 
+    def test_sqlite_factory_uses_custom_file_path(self):
+        """Verify SQLite storage honors a custom factory path."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            custom_path = str(Path(temp_dir) / "custom.db")
+
+            with patch("app.memory.conversation_storage_factory.settings") as settings:
+                settings.CONVERSATION_STORAGE_BACKEND = "sqlite"
+                settings.CONVERSATION_SQLITE_PATH = "outputs/default.db"
+
+                storage = create_conversation_storage(file_path=custom_path)
+
+                self.assertIsInstance(storage, SQLiteConversationStorage)
+                self.assertEqual(storage.database_path, Path(custom_path))
+
+    def test_conversation_memory_preserves_custom_sqlite_path(self):
+        """Verify ConversationMemory forwards its custom path to SQLite storage."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            custom_path = str(Path(temp_dir) / "custom.db")
+
+            with patch("app.memory.conversation_storage_factory.settings") as settings:
+                settings.CONVERSATION_STORAGE_BACKEND = "sqlite"
+                settings.CONVERSATION_SQLITE_PATH = "outputs/default.db"
+
+                memory = ConversationMemory(file_path=custom_path)
+
+                self.assertEqual(memory.storage.database_path, Path(custom_path))
+
+
 if __name__ == "__main__":
     unittest.main()

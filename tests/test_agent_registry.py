@@ -100,5 +100,36 @@ class TestAgentRegistry(unittest.TestCase):
             self.registry.get_by_name("Shared Name")
 
 
+    def test_rejects_non_string_agent_id_lookup(self):
+        """Verify that Agent ID lookup rejects non-string values."""
+        with self.assertRaises(TypeError):
+            self.registry.get(None)
+
+    def test_rejects_empty_agent_id_lookup(self):
+        """Verify that Agent ID lookup rejects empty strings."""
+        with self.assertRaises(ValueError):
+            self.registry.get(" ")
+
+    def test_rejects_non_string_agent_id_unregistration(self):
+        """Verify that Agent unregistration rejects non-string values."""
+        with self.assertRaises(TypeError):
+            self.registry.unregister(None)
+
+    def test_rejects_empty_agent_id_unregistration(self):
+        """Verify that Agent unregistration rejects empty strings."""
+        with self.assertRaises(ValueError):
+            self.registry.unregister(" ")
+
+    def test_rejects_non_string_agent_name_lookup(self):
+        """Verify that Agent name lookup rejects non-string values."""
+        with self.assertRaises(TypeError):
+            self.registry.get_by_name(None)
+
+    def test_rejects_empty_agent_name_lookup(self):
+        """Verify that Agent name lookup rejects empty strings."""
+        with self.assertRaises(ValueError):
+            self.registry.get_by_name(" ")
+
+
 if __name__ == "__main__":
     unittest.main()

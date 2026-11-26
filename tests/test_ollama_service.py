@@ -30,6 +30,48 @@ class TestOllamaService(unittest.TestCase):
         self.assertEqual(result, "Ollama is working.")
         mock_urlopen.assert_called_once()
 
+
+    @patch("app.services.ollama_service.urlopen")
+    def test_rejects_invalid_json_response(self, mock_urlopen):
+        """Reject responses that cannot be decoded as JSON."""
+        mock_urlopen.return_value = BytesIO(b"invalid json")
+
+        with self.assertRaisesRegex(ValueError, "invalid JSON"):
+            generate_response("Test prompt")
+
+    @patch("app.services.ollama_service.urlopen")
+    def test_rejects_non_object_json_response(self, mock_urlopen):
+        """Reject JSON responses that are not objects."""
+        mock_urlopen.return_value = BytesIO(b'["unexpected"]')
+
+        with self.assertRaisesRegex(ValueError, "JSON object"):
+            generate_response("Test prompt")
+
+    @patch("app.services.ollama_service.urlopen")
+    def test_rejects_missing_response_field(self, mock_urlopen):
+        """Reject JSON responses without a response field."""
+        mock_urlopen.return_value = BytesIO(b'{"model": "qwen2.5:0.5b"}')
+
+        with self.assertRaisesRegex(ValueError, "non-empty text"):
+            generate_response("Test prompt")
+
+    @patch("app.services.ollama_service.urlopen")
+    def test_rejects_non_string_response(self, mock_urlopen):
+        """Reject generated responses that are not strings."""
+        mock_urlopen.return_value = BytesIO(b'{"response": 123}')
+
+        with self.assertRaisesRegex(ValueError, "non-empty text"):
+            generate_response("Test prompt")
+
+    @patch("app.services.ollama_service.urlopen")
+    def test_rejects_empty_generated_response(self, mock_urlopen):
+        """Reject generated responses containing only whitespace."""
+        mock_urlopen.return_value = BytesIO(b'{"response": "   "}')
+
+        with self.assertRaisesRegex(ValueError, "non-empty text"):
+            generate_response("Test prompt")
+
+
     @patch("app.services.ollama_service.urlopen")
     def test_handles_connection_error(self, mock_urlopen):
         """Ensure connection errors become readable runtime errors."""

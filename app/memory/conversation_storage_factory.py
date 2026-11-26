@@ -16,6 +16,8 @@ def create_conversation_storage(
         )
 
     if backend == "sqlite":
-        return SQLiteConversationStorage(settings.CONVERSATION_SQLITE_PATH)
+        return SQLiteConversationStorage(
+            file_path or settings.CONVERSATION_SQLITE_PATH
+        )
 
     raise ValueError(f"Unsupported conversation storage backend: {backend}")

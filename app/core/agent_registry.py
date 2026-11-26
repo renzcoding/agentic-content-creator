@@ -20,13 +20,27 @@ class AgentRegistry:
 
         self._agents[agent.agent_id] = agent
 
+    @staticmethod
+    def _validate_agent_id(agent_id: str) -> str:
+        """Validate and normalize an Agent identifier."""
+        if not isinstance(agent_id, str):
+            raise TypeError("Agent ID must be a string.")
+
+        normalized_id = agent_id.strip()
+        if not normalized_id:
+            raise ValueError("Agent ID must not be empty.")
+
+        return normalized_id
+
     def get(self, agent_id: str) -> BaseAgent | None:
         """Retrieve an Agent by its permanent identifier."""
-        return self._agents.get(agent_id)
+        normalized_id = self._validate_agent_id(agent_id)
+        return self._agents.get(normalized_id)
 
     def unregister(self, agent_id: str) -> BaseAgent | None:
         """Remove and return an Agent by its permanent identifier."""
-        return self._agents.pop(agent_id, None)
+        normalized_id = self._validate_agent_id(agent_id)
+        return self._agents.pop(normalized_id, None)
 
     def list_agents(self) -> list[BaseAgent]:
         """Return all registered Agents in insertion order."""
@@ -34,6 +48,9 @@ class AgentRegistry:
 
     def get_by_name(self, name: str) -> BaseAgent | None:
         """Retrieve an Agent by name and reject ambiguous matches."""
+        if not isinstance(name, str):
+            raise TypeError("Agent name must be a string.")
+
         normalized_name = name.strip().lower()
 
         if not normalized_name:

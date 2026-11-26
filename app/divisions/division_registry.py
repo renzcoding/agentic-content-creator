@@ -18,9 +18,22 @@ class DivisionRegistry:
 
         self._divisions[division.division_id] = division
 
+    @staticmethod
+    def _validate_division_id(division_id: str) -> str:
+        """Validate and normalize a Division identifier."""
+        if not isinstance(division_id, str):
+            raise TypeError("Division ID must be a string.")
+
+        normalized_id = division_id.strip()
+        if not normalized_id:
+            raise ValueError("Division ID must not be empty.")
+
+        return normalized_id
+
     def get(self, division_id: str) -> BaseDivision | None:
         """Retrieve a Division by its stable identifier."""
-        return self._divisions.get(division_id)
+        normalized_id = self._validate_division_id(division_id)
+        return self._divisions.get(normalized_id)
 
     def list_divisions(self) -> list[BaseDivision]:
         """Return registered Divisions in registration order."""
@@ -28,6 +41,15 @@ class DivisionRegistry:
 
     def validate_agent_references(self, agent_ids: set[str]) -> None:
         """Ensure all Division members and managers reference known Agents."""
+        if not isinstance(agent_ids, set):
+            raise TypeError("Agent IDs must be provided as a set.")
+
+        if any(not isinstance(agent_id, str) for agent_id in agent_ids):
+            raise TypeError("Agent IDs must contain only strings.")
+
+        if any(not agent_id.strip() for agent_id in agent_ids):
+            raise ValueError("Agent IDs must not contain empty strings.")
+
         for division in self._divisions.values():
             for agent_id in division.agent_ids:
                 if agent_id not in agent_ids:

@@ -3,11 +3,26 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.memory.conversation_memory import ConversationMemory
 from app.memory.base_conversation_storage import BaseConversationStorage
+from app.memory.conversation_memory import ConversationMemory
 from app.memory.sqlite_conversation_storage import SQLiteConversationStorage
-import tempfile
-from pathlib import Path
+
+class StaticConversationStorage(BaseConversationStorage):
+    """Provide controlled conversation data for boundary validation tests."""
+
+    def __init__(self, data):
+        """Initialize storage with predefined conversation data."""
+        self.data = data
+        self.save_calls = 0
+
+    def load(self):
+        """Return the predefined conversation data."""
+        return self.data
+
+    def save(self, sessions):
+        """Store validated conversation data and track save operations."""
+        self.data = sessions
+        self.save_calls += 1
 
 
 class TestConversationMemory(unittest.TestCase):
@@ -22,6 +37,30 @@ class TestConversationMemory(unittest.TestCase):
     def tearDown(self):
         """Remove temporary test storage."""
         self.temp_dir.cleanup()
+
+    def test_rejects_non_string_file_path(self):
+        """Verify file paths must be strings or None."""
+        with self.assertRaises(TypeError):
+            ConversationMemory(file_path=123)
+
+    def test_rejects_empty_file_path(self):
+        """Verify empty file paths are rejected."""
+        with self.assertRaises(ValueError):
+            ConversationMemory(file_path="   ")
+
+    def test_rejects_invalid_storage_dependency(self):
+        """Verify injected storage must implement the storage contract."""
+        with self.assertRaises(TypeError):
+            ConversationMemory(storage=object())
+
+    def test_accepts_injected_storage_dependency(self):
+        """Verify a valid injected storage backend is accepted."""
+        storage = StaticConversationStorage({})
+
+        memory = ConversationMemory(storage=storage)
+
+        self.assertIs(memory.storage, storage)
+        self.assertEqual(memory.get_history(), [])
 
     def test_adds_and_retrieves_messages(self):
         """Verify that conversation messages are stored and retrieved."""
@@ -342,6 +381,117 @@ class TestConversationMemory(unittest.TestCase):
             results[1]["content"],
             "React frontend project two.",
         )
+
+    def test_rejects_invalid_custom_storage_dictionary(self):
+        """Reject malformed session data returned by custom storage."""
+        storage = StaticConversationStorage({
+            "default": [
+                {"role": "user", "content": ""}
+            ]
+        })
+        memory = ConversationMemory(storage=storage)
+
+        with self.assertRaises(ValueError):
+            memory.get_history()
+
+        self.assertEqual(storage.save_calls, 0)
+
+    def test_rejects_invalid_legacy_data_before_migration(self):
+        """Reject malformed legacy data without persisting migration."""
+        storage = StaticConversationStorage([
+            {"role": "user", "content": ""}
+        ])
+        memory = ConversationMemory(storage=storage)
+
+        with self.assertRaises(ValueError):
+            memory.get_history()
+
+        self.assertEqual(storage.save_calls, 0)
+
+    def test_rejects_unsupported_custom_storage_data_type(self):
+        """Reject unsupported data types returned by custom storage."""
+        storage = StaticConversationStorage("invalid conversation data")
+        memory = ConversationMemory(storage=storage)
+
+        with self.assertRaises(ValueError):
+            memory.get_history()
+
+        self.assertEqual(storage.save_calls, 0)
+
+    def test_rejects_non_string_message_role(self):
+        """Verify message roles must be strings."""
+        with self.assertRaises(TypeError):
+            self.memory.add_message(123, "Hello")
+
+    def test_rejects_non_string_message_content(self):
+        """Verify message content must be strings."""
+        with self.assertRaises(TypeError):
+            self.memory.add_message("user", 123)
+
+    def test_rejects_non_string_session_id(self):
+        """Verify session identifiers must be strings."""
+        with self.assertRaises(TypeError):
+            self.memory.add_message("user", "Hello", None)
+
+        with self.assertRaises(TypeError):
+            self.memory.get_history(session_id=None)
+
+        with self.assertRaises(TypeError):
+            self.memory.clear(session_id=None)
+
+    def test_rejects_non_integer_history_limit(self):
+        """Verify history limits must be integers or None."""
+        for limit in ("5", 1.5, True):
+            with self.subTest(limit=limit):
+                with self.assertRaises(TypeError):
+                    self.memory.get_history(limit=limit)
+
+    def test_rejects_non_integer_search_limit(self):
+        """Verify search limits must be integers or None."""
+        for limit in ("5", 1.5, False):
+            with self.subTest(limit=limit):
+                with self.assertRaises(TypeError):
+                    self.memory.search_messages("React", limit=limit)
+
+    def test_rejects_non_string_search_session_id(self):
+        """Verify search session identifiers must be strings."""
+        with self.assertRaises(TypeError):
+            self.memory.search_messages("React", session_id=None)
+
+    def test_rejects_unsupported_search_keyword_type(self):
+        """Verify search keywords must be strings or lists."""
+        with self.assertRaises(TypeError):
+            self.memory.search_messages(123)
+
+    def test_rejects_non_string_items_in_search_keywords(self):
+        """Verify every search keyword must be a non-empty string."""
+        with self.assertRaises(TypeError):
+            self.memory.search_messages(["React", 123])
+
+    def test_rejects_empty_items_in_search_keywords(self):
+        """Verify empty search keywords are rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.search_messages(["React", " "])
+
+    def test_rejects_empty_search_keyword_list(self):
+        """Verify an empty keyword list is rejected."""
+        with self.assertRaises(ValueError):
+            self.memory.search_messages([])
+
+    def test_rejects_boolean_and_negative_limits(self):
+        """Verify boolean and negative limits follow strict validation."""
+        with self.assertRaises(TypeError):
+            self.memory.get_history(limit=True)
+
+        with self.assertRaises(ValueError):
+            self.memory.get_history(limit=-1)
+
+        with self.assertRaises(TypeError):
+            self.memory.search_messages("React", limit=False)
+
+        with self.assertRaises(ValueError):
+            self.memory.search_messages("React", limit=-1)
+
 
 if __name__ == "__main__":
     unittest.main()
