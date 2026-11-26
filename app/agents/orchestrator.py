@@ -1,50 +1,58 @@
-
 from app.agents.base_agent import BaseAgent
+from app.core.agent_registry import AgentRegistry
 
 
 class AgentOrchestrator:
-    """Manage agent registration and task execution."""
+    """Coordinate Agent registration and task execution."""
 
-    def __init__(self) -> None:
-        """Initialize an empty agent registry."""
-        self.agents: dict[str, BaseAgent] = {}
+    def __init__(self, registry: AgentRegistry | None = None) -> None:
+        """Initialize the Orchestrator with an AgentRegistry."""
+        self.registry = registry or AgentRegistry()
+
+    @property
+    def agents(self) -> dict[str, BaseAgent]:
+        """Provide a legacy name-keyed view of registered Agents."""
+        return {
+            agent.name.strip().lower(): agent
+            for agent in self.registry.list_agents()
+        }
 
     def register_agent(self, agent: BaseAgent) -> None:
-        """Register an agent using its name as the registry key."""
+        """Register an Agent while preserving legacy name validation."""
+        if not isinstance(agent, BaseAgent):
+            raise TypeError("Only BaseAgent instances can be registered.")
 
-        # Normalize the agent name for consistent lookup.
-        agent_key = agent.name.strip().lower()
+        existing_agent = self.registry.get_by_name(agent.name)
 
-        if not agent_key:
-            raise ValueError("Agent name must not be empty.")
+        if existing_agent is not None:
+            raise ValueError(
+                f"Agent '{agent.name}' is already registered."
+            )
 
-        if agent_key in self.agents:
-            raise ValueError(f"Agent '{agent.name}' is already registered.")
-
-        self.agents[agent_key] = agent
+        self.registry.register(agent)
 
     def list_agents(self) -> list[dict[str, str]]:
-        """Return the names and roles of all registered agents."""
-
-        # Build a readable summary of the registered agents.
+        """Return the names and roles of all registered Agents."""
         return [
             {
                 "name": agent.name,
                 "role": agent.role,
             }
-            for agent in self.agents.values()
+            for agent in self.registry.list_agents()
         ]
 
     def execute(self, agent_name: str, task: str) -> str:
-        """Find an agent and execute the requested task."""
+        """Find an Agent through the registry and execute its task."""
+        normalized_name = agent_name.strip()
 
-        # Normalize the requested name before searching.
-        agent_key = agent_name.strip().lower()
-
-        if not agent_key:
+        if not normalized_name:
             raise ValueError("Agent name must not be empty.")
 
-        if agent_key not in self.agents:
-            raise ValueError(f"Agent '{agent_name}' is not registered.")
+        agent = self.registry.get_by_name(normalized_name)
 
-        return self.agents[agent_key].run(task)
+        if agent is None:
+            raise ValueError(
+                f"Agent '{agent_name}' is not registered."
+            )
+
+        return agent.run(task)
